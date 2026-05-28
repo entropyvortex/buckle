@@ -44,7 +44,7 @@
   "dependencies": {
     "commander": "^12.1.0",
     "execa": "^9.5.1",
-    "ink": "^5.0.1",
+    "ink": "^7.0.4",
     "ink-select-input": "^6.0.0",
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^6.0.0",
