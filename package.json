@@ -1,6 +1,6 @@
 {
   "name": "buckle-cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "One verb for devcontainers — generate, build, up, and bash with user-wide templates.",
   "license": "MIT",
   "author": "Buckle Contributors",
