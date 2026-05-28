@@ -27,8 +27,11 @@ export interface ParsedOrigin {
 }
 
 export function parseOrigin(input: string): ParsedOrigin {
-  // Strip trailing slash.
-  const raw = input.replace(/\/+$/, '');
+  // Strip trailing slashes via a manual scan; a `/\/+$/` regex backtracks
+  // quadratically on input that is all slashes (polynomial-regex DoS).
+  let end = input.length;
+  while (end > 0 && input[end - 1] === '/') end--;
+  const raw = input.slice(0, end);
   let ref: string | undefined;
   let urlPart = raw;
   const hashIdx = raw.indexOf('#');
