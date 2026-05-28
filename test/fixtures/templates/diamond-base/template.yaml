@@ -1,0 +1,4 @@
+name: diamond-base
+image: base:1
+features:
+  - gh

@@ -1,0 +1,19 @@
+name: Polyglot
+description: Node + Python + Go on a Debian base. Useful for repos with multiple language signals.
+version: 0.1.0
+
+extends: ubuntu-base
+
+image: mcr.microsoft.com/devcontainers/universal:2
+
+features:
+  - node:20
+  - python:3.12
+  - gh
+
+customizations:
+  vscode:
+    extensions:
+      - dbaeumer.vscode-eslint
+      - ms-python.python
+      - golang.go

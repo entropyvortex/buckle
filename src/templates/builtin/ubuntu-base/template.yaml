@@ -1,0 +1,40 @@
+name: Ubuntu base
+description: Plain Ubuntu LTS with the `vscode` user and common shell tools. Good base to extend.
+version: 0.1.0
+
+# The root of the built-in inheritance tree.
+#
+# Responsibilities:
+# - Guarantee a consistent `vscode` user (many official images use `node`, `python`, etc.)
+# - Provide baseline git signing support via git-config feature
+# - Set sensible defaults (remoteUser, workspaceFolder) that children can inherit or override
+#
+# Most real templates should `extends: ubuntu-base` (or something that eventually does)
+# rather than starting from scratch. This is the "sensible default human developer environment".
+
+image: mcr.microsoft.com/devcontainers/base:ubuntu
+
+features:
+  - git-config
+
+# Ensure the `vscode` user exists even when an extending template swaps in an
+# image that ships without it (e.g. the official `node`-based images expose
+# only a `node` user). common-utils is a no-op when the user already exists.
+nativeFeatures:
+  ghcr.io/devcontainers/features/common-utils:2:
+    username: vscode
+    uid: automatic
+    gid: automatic
+
+remoteUser: vscode
+# Use the full project path as the workspace folder so that shells (and VS Code)
+# start directly inside the project instead of one level above in /workspaces.
+# ${localWorkspaceFolderBasename} is the standard devcontainer variable for the
+# folder name on the host.
+workspaceFolder: /workspaces/${localWorkspaceFolderBasename}
+
+customizations:
+  vscode:
+    extensions:
+      - ms-azuretools.vscode-docker
+      - eamodio.gitlens

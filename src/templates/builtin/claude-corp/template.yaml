@@ -1,0 +1,54 @@
+name: Claude Corp
+description: Node + Claude Code + Grok Build + GitHub CLI + selected MCP servers. Mounts ~/.claude and ~/.grok.
+version: 0.1.0
+
+# Real-world corporate / power-user AI-native example.
+#
+# This template demonstrates having **both** major agentic coding CLIs
+# (Claude Code and Grok Build) as true first-class citizens in the same
+# devcontainer — a pattern buckle explicitly supports and optimizes for.
+#
+# Extends the built-in `node` template, then layers:
+# - Claude Code (Anthropic)
+# - Grok Build (xAI)
+# - GitHub CLI + git signing
+# - A couple of MCP servers
+#
+# Key patterns demonstrated:
+# - `extends` for reuse
+# - `features` sugar (claude-code, grok, gh, git-config, mcp:*)
+# - Mounting two separate AI tool config directories
+# - Environment variables for tool configuration
+# - Bind-mounting host directories using ${localEnv:HOME}
+#
+# Having both Claude Code and Grok Build together is a deliberately
+# first-class experience. The tools compose cleanly with separate
+# config directories and independent install steps.
+
+extends: node
+
+features:
+  - claude-code
+  - grok
+  - gh
+  - git-config
+  - mcp:filesystem
+  - mcp:sequential-thinking
+
+env:
+  CLAUDE_CONFIG_DIR: /home/vscode/.claude
+
+# Mount the host AI coding agent config directories so conversations,
+# settings, API keys, and skills travel with you across machines and projects.
+mounts:
+  - source: ${localEnv:HOME}/.claude
+    target: /home/vscode/.claude
+    type: bind
+  - source: ${localEnv:HOME}/.grok
+    target: /home/vscode/.grok
+    type: bind
+
+customizations:
+  vscode:
+    extensions:
+      - anthropic.claude-code

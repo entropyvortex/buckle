@@ -1,0 +1,6 @@
+name: diamond-left
+extends: diamond-base
+features:
+  - dod
+env:
+  L: "1"

@@ -1,0 +1,14 @@
+name: Deno
+description: Deno runtime, secure by default, with TypeScript / JSX out of the box.
+version: 0.1.0
+
+extends: ubuntu-base
+
+image: denoland/deno:debian
+
+features:
+  - gh
+
+lifecycle:
+  postAttach:
+    - deno --version

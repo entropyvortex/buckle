@@ -1,0 +1,8 @@
+# Default owners for everything in the repo.
+# These owners will be requested for review on all pull requests.
+*       @buckle-dev/maintainers
+
+# Core team members can be added here as the project grows.
+# Example:
+# /src/   @user1 @user2
+# /docs/  @docs-team

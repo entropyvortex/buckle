@@ -1,0 +1,33 @@
+name: Rust
+description: Rust stable with cargo, rust-analyzer, and a persistent target/cache mount.
+version: 0.1.0
+
+# Rust template with two persistent volumes (registry + target).
+#
+# Splitting registry and target into separate volumes is a refined pattern
+# that gives better cache reuse characteristics than a single large volume.
+# The target volume is placed under /workspaces so it is easy to find.
+#
+# This is currently one of the most "productionized" language templates
+# in the built-in set.
+
+extends: ubuntu-base
+
+image: mcr.microsoft.com/devcontainers/rust:1-bookworm
+
+features:
+  - gh
+
+mounts:
+  - source: buckle-cargo-registry
+    target: /usr/local/cargo/registry
+    type: volume
+  - source: buckle-cargo-target
+    target: /workspaces/target
+    type: volume
+
+customizations:
+  vscode:
+    extensions:
+      - rust-lang.rust-analyzer
+      - tamasfe.even-better-toml

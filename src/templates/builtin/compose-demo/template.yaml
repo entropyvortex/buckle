@@ -1,0 +1,34 @@
+name: Compose Demo
+description: Minimal multi-service example using docker-compose (app + optional sidecar). Good starting point for fullstack or service-oriented projects.
+version: 0.1.0
+
+extends: ubuntu-base
+
+# Demonstrates the compose path (see generated docker-compose.yml on first use).
+compose:
+  file: docker-compose.yml
+  service: app
+  runServices: [app]
+  shutdownAction: stopCompose
+
+# Example: bring your own database or cache as a second service.
+# The generated compose file is intentionally simple — customize it for real topologies.
+# Lifecycle hooks run against the primary `service` container.
+
+features:
+  - gh
+  - git-config
+
+env:
+  NODE_ENV: development
+
+# Common pattern: mount something the app needs at runtime.
+mounts:
+  - source: "${localEnv:HOME}/.gitconfig"
+    target: /home/vscode/.gitconfig
+    type: bind
+    readOnly: true
+
+lifecycle:
+  postCreate:
+    - echo "Compose demo ready. Edit docker-compose.yml and your app code."

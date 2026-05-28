@@ -1,0 +1,14 @@
+name: Bun
+description: Bun runtime on Debian, with TypeScript and JSX support.
+version: 0.1.0
+
+extends: ubuntu-base
+
+image: oven/bun:debian
+
+features:
+  - gh
+
+lifecycle:
+  postAttach:
+    - bun --version

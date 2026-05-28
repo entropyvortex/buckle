@@ -1,0 +1,6 @@
+name: diamond-right
+extends: diamond-base
+features:
+  - aws
+env:
+  R: "1"

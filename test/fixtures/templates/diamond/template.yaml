@@ -1,0 +1,6 @@
+name: diamond
+extends:
+  - diamond-left
+  - diamond-right
+env:
+  D: "1"

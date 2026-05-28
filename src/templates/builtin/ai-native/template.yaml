@@ -1,0 +1,75 @@
+name: AI Native
+description: Modern AI-native devcontainer with both Claude Code and Grok Build as first-class citizens, plus useful MCPs and tooling.
+version: 0.1.0
+
+# This is a dedicated "AI-maximal" starting point.
+#
+# Philosophy:
+# - Both major agentic coding CLIs (Claude Code + Grok Build) are treated as
+#   equal, first-class tools in the same environment.
+# - The two agents have different strengths. Having both available lets you
+#   choose the right tool for the task (or use them together via different
+#   workflows).
+# - Persistent mounts for both agents' state so your context, skills, and
+#   preferences travel with you.
+#
+# Recommended usage:
+#   buckle up --feature ai-native
+#   # or
+#   buckle new myproject --extend ai-native
+#
+# This template is intentionally lightweight but opinionated about the
+# dual-agent experience. Extend it for your specific stack (node, python, etc.).
+
+extends: ubuntu-base
+
+features:
+  - node
+  - gh
+  - git-config
+  - mcp:filesystem
+  - mcp:github
+  - mcp:sequential-thinking
+  # Note: claude-code and grok are intentionally *not* listed here.
+  # ai-native declares the mounts, CLAUDE_CONFIG_DIR env, and the install + alias
+  # steps explicitly (with !replace + user: vscode) so we get full control and
+  # avoid duplicate curl | bash steps from the feature patches. The explicit
+  # lifecycle also adds the aggressive aliases for the AI agents.
+
+# Environment hints for both agents
+env:
+  CLAUDE_CONFIG_DIR: /home/vscode/.claude
+  # Grok Build primarily uses ~/.grok/auth.json
+
+# Persist state for both major AI coding agents
+mounts:
+  - source: ${localEnv:HOME}/.claude
+    target: /home/vscode/.claude
+    type: bind
+  - source: ${localEnv:HOME}/.grok
+    target: /home/vscode/.grok
+    type: bind
+
+customizations:
+  vscode:
+    extensions:
+      - anthropic.claude-code
+      # Note: Grok Build primarily lives in the terminal (grok / agent commands)
+      # rather than as a VS Code extension today.
+
+# Run all AI agent setup as the vscode user (so state lands in the mounted homes).
+# We also install aggressive aliases because the entire point of this container
+# is to give the agents maximum power inside a throwaway, isolated environment.
+lifecycle:
+  postCreate:
+    - "!replace"
+    - command: "curl -fsSL https://claude.ai/install.sh | bash"
+      user: "vscode"
+    - command: "curl -fsSL https://x.ai/cli/install.sh | bash"
+      user: "vscode"
+    - command: |
+        echo 'alias grok="grok --yolo"' >> ~/.zshrc
+        echo 'alias grok="grok --yolo"' >> ~/.bashrc
+        echo 'alias claude="claude --dangerously-skip-permissions"' >> ~/.zshrc
+        echo 'alias claude="claude --dangerously-skip-permissions"' >> ~/.bashrc
+      user: "vscode"

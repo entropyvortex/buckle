@@ -1,0 +1,15 @@
+name: Parent
+description: A test parent template.
+version: 0.1.0
+image: parent-image:1
+features:
+  - gh
+env:
+  PARENT_VAR: parent
+lifecycle:
+  postCreate:
+    - echo parent
+customizations:
+  vscode:
+    extensions:
+      - parent.ext

@@ -1,0 +1,33 @@
+name: Python
+description: Python 3.12 with pip, venv, and uv pre-installed.
+version: 0.1.0
+
+# Python base demonstrating modern tooling patterns.
+#
+# Highlights:
+# - Uses official devcontainer python image via the `python:3.12` convenience feature
+# - Post-create upgrade + uv installation (fast, modern Python toolchain)
+# - Ruff + Jupyter extensions (current community sweet spot)
+#
+# Extend this when you need data science, ML, or heavy backend Python work.
+# The uv install pattern is especially valuable for monorepos or fast CI-like dev loops.
+
+extends: ubuntu-base
+
+image: mcr.microsoft.com/devcontainers/python:1-3.12-bookworm
+
+features:
+  - python:3.12
+  - gh
+
+lifecycle:
+  postCreate:
+    - python -m pip install --upgrade pip
+    - pipx install uv || pip install --user uv
+
+customizations:
+  vscode:
+    extensions:
+      - ms-python.python
+      - charliermarsh.ruff
+      - ms-toolsai.jupyter

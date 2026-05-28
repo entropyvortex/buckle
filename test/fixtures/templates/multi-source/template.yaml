@@ -1,0 +1,4 @@
+name: multi-source
+image: foo:1
+build:
+  dockerfile: Dockerfile

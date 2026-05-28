@@ -1,0 +1,6 @@
+name: Replace child
+extends: parent
+lifecycle:
+  postCreate:
+    - "!replace"
+    - echo only-child

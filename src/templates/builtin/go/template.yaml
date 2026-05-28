@@ -1,0 +1,28 @@
+name: Go
+description: Go 1.22 with delve, gopls, and modules cache mounted.
+version: 0.1.0
+
+# Go template with persistent module cache via named volume.
+#
+# The volume mount for `/go/pkg/mod` is a common high-leverage pattern
+# for Go developers — it survives container rebuilds and dramatically
+# speeds up `go mod download` across projects.
+#
+# Extend this when building Go services, CLIs, or Kubernetes controllers.
+
+extends: ubuntu-base
+
+image: mcr.microsoft.com/devcontainers/go:1-1.22-bookworm
+
+features:
+  - gh
+
+mounts:
+  - source: buckle-gomod-cache
+    target: /go/pkg/mod
+    type: volume
+
+customizations:
+  vscode:
+    extensions:
+      - golang.go

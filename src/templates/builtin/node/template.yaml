@@ -1,0 +1,35 @@
+name: Node.js
+description: Node.js 20 (Bullseye) with corepack, ready for npm/yarn/pnpm/bun.
+version: 0.1.0
+
+# Solid, opinionated Node base used by many other templates (claude-corp, etc.).
+# 
+# Demonstrates:
+# - `extends` from ubuntu-base (brings vscode user + git-config)
+# - Buckle convenience feature `node:20` (compiles to official devcontainer node feature)
+# - `corepack enable` in postCreate (enables pnpm/yarn/bun without global installs)
+# - Minimal but high-signal postAttach for quick feedback on attach
+#
+# Good foundation to extend when you want a modern JS/TS environment with
+# your own company MCPs, linters, or monorepo tooling on top.
+
+extends: ubuntu-base
+
+image: mcr.microsoft.com/devcontainers/javascript-node:1-20-bullseye
+
+features:
+  - node:20
+  - gh
+
+lifecycle:
+  postCreate:
+    - corepack enable
+  postAttach:
+    - node --version
+
+customizations:
+  vscode:
+    extensions:
+      - dbaeumer.vscode-eslint
+      - esbenp.prettier-vscode
+      - ms-vscode.vscode-typescript-next

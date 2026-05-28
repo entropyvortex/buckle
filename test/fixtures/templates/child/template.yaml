@@ -1,0 +1,17 @@
+name: Child
+description: A test child template extending parent.
+version: 0.2.0
+extends: parent
+image: child-image:1
+features:
+  - gh
+  - dod
+env:
+  CHILD_VAR: child
+lifecycle:
+  postCreate:
+    - echo child
+customizations:
+  vscode:
+    extensions:
+      - child.ext

@@ -1,0 +1,3 @@
+name: cycle-b
+extends: cycle-a
+image: b:1
