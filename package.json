@@ -49,15 +49,15 @@
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^6.0.0",
     "react": "^18.3.1",
-    "yaml": "^2.6.1",
+    "yaml": "^2.9.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
-    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/eslint-plugin": "^8.60.0",
     "@typescript-eslint/parser": "^8.15.0",
-    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/coverage-v8": "^4.1.7",
     "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",
     "ink-testing-library": "^4.0.0",
