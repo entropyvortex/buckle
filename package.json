@@ -1,6 +1,6 @@
 {
   "name": "buckle-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "One verb for devcontainers — generate, build, up, and bash with user-wide templates.",
   "license": "MIT",
   "author": "Buckle Contributors",
@@ -78,14 +78,18 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/buckle-dev/buckle.git"
+    "url": "https://github.com/entropyvortex/buckle.git"
   },
-  "homepage": "https://github.com/buckle-dev/buckle#readme",
+  "homepage": "https://github.com/entropyvortex/buckle#readme",
   "bugs": {
-    "url": "https://github.com/buckle-dev/buckle/issues"
+    "url": "https://github.com/entropyvortex/buckle/issues"
   },
   "lint-staged": {
-    "src/**/*.{ts,tsx}": ["eslint --fix"],
-    "test/**/*.{ts,tsx}": ["eslint --fix --max-warnings=999"]
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix"
+    ],
+    "test/**/*.{ts,tsx}": [
+      "eslint --fix --max-warnings=999"
+    ]
   }
 }

@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_github_release:
+        description: 'Also create a GitHub Release?'
+        required: false
+        default: true
+        type: boolean
+
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # Needed for creating GitHub Releases
+      id-token: write      # REQUIRED for npm Trusted Publishing (OIDC)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          # IMPORTANT: Do NOT set registry-url when using Trusted Publishing (OIDC).
+          # Setting it interferes with the OIDC token exchange and causes ENEEDAUTH.
+
+      - name: Upgrade npm (Trusted Publishing requires npm >= 11.5.1)
+        # Node 22 ships with npm 10.x, which has NO OIDC Trusted Publishing support.
+        # Without it, `npm publish` falls back to token auth and fails with ENEEDAUTH.
+        run: |
+          npm install -g npm@latest
+          npm --version
+
+      - name: Validate version and repository (always)
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          PKG_REPO=$(node -p "require('./package.json').repository?.url || ''" 2>/dev/null || echo "")
+
+          echo "Package version:  ${PKG_VERSION}"
+          echo "Package repo URL: ${PKG_REPO}"
+          echo "GitHub repository: ${{ github.repository }}"
+
+          if [[ ! "$PKG_REPO" == *"entropyvortex/buckle"* ]]; then
+            echo "::error::package.json repository.url does not point to entropyvortex/buckle (got: $PKG_REPO)"
+            echo "This will cause Trusted Publishing to fail with ENEEDAUTH."
+            echo "The release must be done from a commit where package.json declares the correct repository."
+            exit 1
+          fi
+
+          echo "Repository validation passed."
+
+          if [ "${{ startsWith(github.ref, 'refs/tags/v') }}" == "true" ]; then
+            TAG_VERSION=${GITHUB_REF#refs/tags/v}
+            echo "Tag version:      v${TAG_VERSION}"
+            if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+              echo "::error::Tag version (v${TAG_VERSION}) does not match package.json version (${PKG_VERSION})"
+              echo "Please bump the version in package.json to ${TAG_VERSION} before tagging."
+              exit 1
+            fi
+            echo "Version validation passed."
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Fix package.json (clean any normalization issues)
+        run: npm pkg fix
+
+      - name: Publish to npm (Trusted Publishing)
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Attempting to publish buckle-cli@$VERSION using Trusted Publishing..."
+          npm publish --provenance --access public
+        # This step relies on the Trusted Publisher configured on npmjs.com
+        # for the "buckle-cli" package pointing to this repository + release.yml
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' || inputs.create_github_release == true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
