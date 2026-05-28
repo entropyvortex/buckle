@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    # Recommended way to release for now.
+    # You will manually bump the version in package.json, commit + tag it,
+    # then trigger this workflow (or push the tag).
+    inputs:
+      create_github_release:
+        description: 'Also create a GitHub Release?'
+        required: false
+        default: true
+        type: boolean
+
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write      # REQUIRED for npm Trusted Publishing (OIDC)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          # No need to set NODE_AUTH_TOKEN when using Trusted Publishing
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish to npm (Trusted Publishing)
+        run: npm publish --provenance --access public
+        # No NODE_AUTH_TOKEN or NPM_TOKEN is needed when using Trusted Publishing.
+        # Make sure you have configured this repository as a Trusted Publisher
+        # for the "buckle-cli" package on https://www.npmjs.com
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' || inputs.create_github_release == true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
