@@ -2,9 +2,6 @@ name: Release
 
 on:
   workflow_dispatch:
-    # Recommended way to release for now.
-    # You will manually bump the version in package.json, commit + tag it,
-    # then trigger this workflow (or push the tag).
     inputs:
       create_github_release:
         description: 'Also create a GitHub Release?'
@@ -27,29 +24,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Needed to compare tag with package.json version
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          # IMPORTANT: Do NOT set registry-url when using Trusted Publishing (OIDC).
+          # Setting it interferes with the OIDC token exchange and causes ENEEDAUTH.
 
-      - name: Validate version (when triggered by tag)
+      - name: Validate version (tag-triggered releases)
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           TAG_VERSION=${GITHUB_REF#refs/tags/v}
           PKG_VERSION=$(node -p "require('./package.json').version")
-          
+
           echo "Tag version:    v${TAG_VERSION}"
           echo "Package version: ${PKG_VERSION}"
-          
+
           if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
             echo "::error::Tag version (v${TAG_VERSION}) does not match package.json version (${PKG_VERSION})"
             echo "Please bump the version in package.json to ${TAG_VERSION} before tagging."
             exit 1
           fi
           echo "Version validation passed."
-          # No need to set NODE_AUTH_TOKEN when using Trusted Publishing
 
       - name: Install dependencies
         run: npm ci
@@ -59,23 +57,20 @@ jobs:
 
       - name: Publish to npm (Trusted Publishing)
         run: |
-          echo "Attempting to publish buckle-cli@$(node -p 'require(\"./package.json\").version') using Trusted Publishing..."
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Attempting to publish buckle-cli@$VERSION using Trusted Publishing..."
           npm publish --provenance --access public
-        # This will only succeed if:
-        # 1. You have configured Trusted Publishing for "buckle-cli" on npmjs.com
-        # 2. This exact GitHub repository + workflow file is listed as a trusted publisher
-        # 3. The version in package.json has not been published before
-        # No NODE_AUTH_TOKEN is used.
+        # This step relies on the Trusted Publisher configured on npmjs.com
+        # for the "buckle-cli" package pointing to this repository + release.yml
 
       - name: Create GitHub Release
         if: github.event_name == 'push' || inputs.create_github_release == true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
