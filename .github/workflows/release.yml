@@ -32,6 +32,13 @@ jobs:
           # IMPORTANT: Do NOT set registry-url when using Trusted Publishing (OIDC).
           # Setting it interferes with the OIDC token exchange and causes ENEEDAUTH.
 
+      - name: Upgrade npm (Trusted Publishing requires npm >= 11.5.1)
+        # Node 22 ships with npm 10.x, which has NO OIDC Trusted Publishing support.
+        # Without it, `npm publish` falls back to token auth and fails with ENEEDAUTH.
+        run: |
+          npm install -g npm@latest
+          npm --version
+
       - name: Validate version and repository (always)
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
