@@ -47,8 +47,10 @@ Requires **Node ≥ 20** and a working **Docker daemon**. The
 you if it's missing.
 
 ```bash
-npm install -g buckle @devcontainers/cli
+npm install -g buckle-cli @devcontainers/cli
 ```
+
+> **Note**: The package on npm is published as `buckle-cli`, but the executable command is `buckle`.
 
 Verify:
 
