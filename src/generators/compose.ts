@@ -29,7 +29,7 @@ function mountToComposeVolume(m: MountDecl, defaultConsistency?: string): Compos
   };
   if (m.readOnly) (v as { read_only?: boolean }).read_only = true;
   if (m.consistency || defaultConsistency) {
-    (v as { consistency?: string }).consistency = m.consistency ?? defaultConsistency;
+    (v as { consistency?: string }).consistency = (m.consistency ?? defaultConsistency)!;
   }
   return v;
 }

@@ -24,6 +24,12 @@ export default [
       'no-console': ['warn', { allow: ['error', 'warn'] }],
     },
   },
+  {
+    files: ['test/**/*.{ts,tsx}'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
   { ignores: ['dist/**', 'coverage/**', 'node_modules/**'] },
   prettier,
 ];
