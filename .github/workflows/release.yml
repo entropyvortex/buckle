@@ -13,13 +13,12 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
-  id-token: write      # REQUIRED for npm Trusted Publishing (OIDC)
-
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write      # Needed for creating GitHub Releases
+      id-token: write      # REQUIRED for npm Trusted Publishing (OIDC)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
