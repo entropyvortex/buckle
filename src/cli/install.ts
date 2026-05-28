@@ -9,7 +9,7 @@
  */
 import { createHash } from 'node:crypto';
 import { mkdir, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 
 import { execa } from 'execa';
 
@@ -68,6 +68,15 @@ export function parseOrigin(input: string): ParsedOrigin {
       'use gh:user/repo, gl:user/repo, https://…/foo.git, or file:///path',
     );
   }
+
+  // Sanitize path to prevent directory traversal when later joining with the clone destination.
+  if (path) {
+    // Remove any .. segments and ensure it stays relative and safe.
+    const segments = path.split(/[/\\]+/).filter(Boolean);
+    const safeSegments = segments.filter((seg) => seg !== '..' && seg !== '.');
+    path = safeSegments.length > 0 ? safeSegments.join('/') : undefined;
+  }
+
   const hashKey = createHash('sha256')
     .update([url, ref ?? '', path ?? ''].join('|'))
     .digest('hex')
@@ -114,6 +123,17 @@ export async function install(
   }
   // Locate a template.yaml under (path or root).
   const baseDir = origin.path ? join(dest, origin.path) : dest;
+
+  // Final safety check against path traversal (even after sanitization in parseOrigin).
+  const resolvedBase = resolve(baseDir);
+  const resolvedDest = resolve(dest);
+  if (!resolvedBase.startsWith(resolvedDest + sep) && resolvedBase !== resolvedDest) {
+    throw new BuckleError(
+      ErrorCode.E_INSTALL_FAILED,
+      'invalid path in origin (directory traversal attempt detected)',
+    );
+  }
+
   const tplYaml = join(baseDir, 'template.yaml');
   if (!(await exists(tplYaml))) {
     throw new BuckleError(

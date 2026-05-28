@@ -15,6 +15,14 @@ export interface NewArgs {
 }
 
 export async function runNew(ctx: CliContext, args: NewArgs): Promise<number> {
+  if (!/^[a-zA-Z0-9._-]+$/.test(args.name) || args.name.includes('..')) {
+    throw new BuckleError(
+      ErrorCode.E_TEMPLATE_INVALID,
+      `invalid template name "${args.name}"`,
+      'Template names may only contain letters, numbers, dots, dashes, and underscores.',
+    );
+  }
+
   if (await templateExists(args.name)) {
     throw new BuckleError(
       ErrorCode.E_TEMPLATE_CONFLICT,
