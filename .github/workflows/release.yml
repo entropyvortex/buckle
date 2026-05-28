@@ -33,36 +33,43 @@ jobs:
           # IMPORTANT: Do NOT set registry-url when using Trusted Publishing (OIDC).
           # Setting it interferes with the OIDC token exchange and causes ENEEDAUTH.
 
-      - name: Validate version and repository (tag-triggered releases)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Validate version and repository (always)
         run: |
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
           PKG_VERSION=$(node -p "require('./package.json').version")
           PKG_REPO=$(node -p "require('./package.json').repository?.url || ''" 2>/dev/null || echo "")
 
-          echo "Tag version:      v${TAG_VERSION}"
           echo "Package version:  ${PKG_VERSION}"
           echo "Package repo URL: ${PKG_REPO}"
-
-          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
-            echo "::error::Tag version (v${TAG_VERSION}) does not match package.json version (${PKG_VERSION})"
-            echo "Please bump the version in package.json to ${TAG_VERSION} before tagging."
-            exit 1
-          fi
+          echo "GitHub repository: ${{ github.repository }}"
 
           if [[ ! "$PKG_REPO" == *"entropyvortex/buckle"* ]]; then
             echo "::error::package.json repository.url does not point to entropyvortex/buckle (got: $PKG_REPO)"
-            echo "This will very likely cause Trusted Publishing to fail with ENEEDAUTH."
+            echo "This will cause Trusted Publishing to fail with ENEEDAUTH."
+            echo "The release must be done from a commit where package.json declares the correct repository."
             exit 1
           fi
 
-          echo "Version and repository validation passed."
+          echo "Repository validation passed."
+
+          if startsWith(github.ref, 'refs/tags/v'); then
+            TAG_VERSION=${GITHUB_REF#refs/tags/v}
+            echo "Tag version:      v${TAG_VERSION}"
+            if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+              echo "::error::Tag version (v${TAG_VERSION}) does not match package.json version (${PKG_VERSION})"
+              echo "Please bump the version in package.json to ${TAG_VERSION} before tagging."
+              exit 1
+            fi
+            echo "Version validation passed."
+          fi
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build
         run: npm run build
+
+      - name: Fix package.json (clean any normalization issues)
+        run: npm pkg fix
 
       - name: Publish to npm (Trusted Publishing)
         run: |
