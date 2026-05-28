@@ -4,23 +4,21 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] — 2026-05-28
 
 ### Added
-- `writeTextAtomic` is now a real best-effort atomic write (temp file + rename + fsync + cross-device fallback) with honest JSDoc and tests.
-- `buckle doctor` now detects and reports actual container runtime (`container.runtime`: docker vs podman via compat).
-- Full TUI dependency injection via `TuiServices` bag — Wizard and StatusPanel no longer directly construct `makeContext`/`Driver` (major purity improvement, enables testing).
-- `buckle up` (no template, no existing `.devcontainer/`) now launches the wizard with up-intent, making the "one verb" mental model consistent.
-- Major compose improvements: better mounts→volumes conversion, workspaceFolder support, expanded runArgs, `working_dir`, generated header.
-- Compose guardrails: warnings when `compose` + `dind`/`dod` or conflicting user settings are used.
-- New built-in `compose-demo` template for multi-service starting points.
-- `docs/PATTERNS.md` + large new "Common Patterns & Gotchas" section in README (lifecycle table, `${localEnv:...}` rules, realistic corporate inheritance, compose realities).
-- High-quality explanatory comments added to all built-in templates.
-- 5 new tests across writer/compose/fs (now 184 total).
+- Trusted Publishing support via GitHub Actions OIDC (no more long-lived NPM_TOKEN required).
+- Proper release workflow (`.github/workflows/release.yml`) triggered on version tags.
+- Code scanning fixes for path traversal vulnerabilities (in template installation and `buckle new`).
+- Improved pre-commit lint guard using Husky + lint-staged.
+- Better Dependabot configuration to reduce noise on risky major updates.
 
 ### Changed
-- Podman language in README and doctor made precise and hedged (no more "expected to just work").
-- `package.json` now includes `docs/` so documentation ships with the package.
+- Package is now published as `buckle-cli` on npm (binary remains `buckle`).
+- Repository references updated for current fork during initial development.
+- Various CI and developer experience improvements (lint config, version validation on release).
+
+## [Unreleased]
 
 ## [0.1.0] — 2026-05-08
 
