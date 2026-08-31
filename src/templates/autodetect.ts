@@ -150,7 +150,9 @@ export async function detectProject(cwd: string): Promise<AutoDetectResult> {
   let suggestions: string[];
   let polyglot = false;
   if (!top) {
-    suggestions = ['ubuntu-base'];
+    // Empty / unknown projects: surface the dual-agent template next to the blank base
+    // so the AI-native path is visible on first contact.
+    suggestions = ['ai-native', 'ubuntu-base'];
   } else if (!second) {
     suggestions = [top.template];
   } else if (top.score - second.score >= 2) {

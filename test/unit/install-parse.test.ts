@@ -40,6 +40,10 @@ describe('parseOrigin', () => {
     expect(() => parseOrigin('something-bad')).toThrow();
   });
 
+  it('rejects plaintext http origins', () => {
+    expect(() => parseOrigin('http://example.com/x.git')).toThrow(/plaintext http/);
+  });
+
   it('hashKey is stable across calls and varies with ref', () => {
     const a = parseOrigin('gh:foo/bar#v1').hashKey;
     const b = parseOrigin('gh:foo/bar#v1').hashKey;

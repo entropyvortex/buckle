@@ -3,6 +3,9 @@ import { makeContext } from '../cli/context.js';
 import { Driver, type DriverOptions } from '../docker/driver.js';
 import type { RenderArgs, RenderOutcome } from '../cli/render.js';
 import { renderTemplate } from '../cli/render.js';
+import type { AutoDetectResult } from '../templates/autodetect.js';
+import { detectProject } from '../templates/autodetect.js';
+import { listCatalog } from '../templates/loader.js';
 
 /**
  * Lightweight dependency bag for the TUI components.
@@ -30,6 +33,8 @@ export interface TuiServices {
   makeContext: TuiContextFactory;
   createDriver: DriverFactory;
   renderTemplate: TuiRenderTemplate;
+  detectProject?: (cwd: string) => Promise<AutoDetectResult>;
+  listCatalog?: typeof listCatalog;
 }
 
 /**
@@ -47,6 +52,8 @@ export function createDefaultTuiServices(): TuiServices {
       }),
 
     renderTemplate: (ctx, args) => renderTemplate(ctx, args),
+    detectProject,
+    listCatalog,
   };
 }
 

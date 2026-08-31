@@ -118,6 +118,8 @@ $ buckle up claude-corp        # Node + Claude Code + GitHub CLI + selected MCPs
 | `--detach` | Don't attach a shell after `up`/`rebuild`. |
 | `--git-init` | Initialize a git repo in the workspace if there is none. |
 | `--preview`, `--dry-run` | Show what *would* be written without touching disk. |
+| `--isolate` | Default. Per-workspace `~/.claude` / `~/.grok` under `$XDG_DATA_HOME/buckle/workspaces/`. |
+| `--share-home`, `--no-isolate` | Bind-mount host `~/.claude`, `~/.grok`, and `~/.gitconfig` instead. |
 
 ---
 
@@ -474,7 +476,7 @@ status:    running
 image:     mcr.microsoft.com/devcontainers/javascript-node:1-20-bullseye
 ports:     3000 → 3000/tcp
 
-r rebuild · u up · s/d down · b bash · q quit
+r rebuild · u up · s/d down · b bash · c reconfigure · q quit
 ```
 
 Refresh interval defaults to 5 s; override with `BUCKLE_STATUS_REFRESH=2000`.
@@ -519,16 +521,46 @@ file system. `buckle` therefore prompts you on first use of any template whose
 is unseen. The trust store lives at `~/.config/buckle/trust.json` and maps the merged-template
 SHA-256 to the date you trusted it. If the surface changes, you're prompted again.
 
+On a TTY, buckle prints that surface and asks `[y/N]`. In CI, `--json`, or any non-TTY
+context the prompt is a hard error (`E_HASH_MISMATCH`); pass `--trust` after reviewing
+with `buckle view`.
+
 You can:
 
 - pass `--trust` to skip the prompt for that one run
-- inspect a template before trusting with `buckle edit <name>`
+- inspect a template before trusting with `buckle view <name>` / `buckle edit <name>`
 - review what would be written without committing with `--preview` / `--dry-run`
 
+Built-in templates are pre-trusted. User and installed templates are not.
+
 `buckle` does no network access during template resolution. `buckle install` does network
-clones via `git`. `buckle doctor` is the only command that probes outside the workspace.
+clones via `git` (HTTPS only; plaintext `http://` is rejected). `buckle doctor` is the only
+command that probes outside the workspace.
 
 See [SECURITY.md](SECURITY.md) for the full threat model.
+
+## Isolation (default)
+
+Agent skills, versions, and config are **per workspace**, not shared from the host:
+
+| Path in container | Isolated source (default) | `--share-home` |
+| --- | --- | --- |
+| `/home/vscode/.claude` | `$XDG_DATA_HOME/buckle/workspaces/<slug>-<hash>/claude` | `${localEnv:HOME}/.claude` |
+| `/home/vscode/.grok` | `$XDG_DATA_HOME/buckle/workspaces/<slug>-<hash>/grok` | `${localEnv:HOME}/.grok` |
+| `/home/vscode/.gitconfig` | host `~/.gitconfig` (identity, always) | host `~/.gitconfig` |
+
+Re-render an existing project to pick up isolation:
+
+```bash
+buckle ai-native --yes          # isolated (default)
+buckle ai-native --share-home --yes
+```
+
+Override for every command via `~/.config/buckle/config.yaml`:
+
+```yaml
+isolate: false   # equivalent to always passing --share-home
+```
 
 ---
 
@@ -561,6 +593,7 @@ Per-user file at `~/.config/buckle/config.yaml` (optional):
 ```yaml
 editor: code              # falls back to $VISUAL → $EDITOR → vi
 defaultTemplate: node     # used by the wizard if autodetect can't decide
+isolate: true             # default; set false to share host ~/.claude and ~/.grok
 ```
 
 Environment variables:
@@ -572,12 +605,13 @@ Environment variables:
 | `BUCKLE_BUILTIN_DIR` | Override built-in template directory (testing). |
 | `BUCKLE_NO_COLOR` | Strip ANSI from output (also honors `NO_COLOR`). |
 | `BUCKLE_DEBUG` | Print full stack traces on uncaught errors. |
+| `BUCKLE_STATE_DIR` | Override the per-workspace AI state root (default `$XDG_DATA_HOME/buckle/workspaces`). |
 
 ---
 
 ## Testing
 
-Run the full suite (179 tests at the time of writing):
+Run the full suite:
 
 ```bash
 npm test
@@ -646,7 +680,7 @@ change the spec, please reference it.
 To work on buckle locally:
 
 ```bash
-git clone https://github.com/buckle-dev/buckle.git
+git clone https://github.com/entropyvortex/buckle.git
 cd buckle
 npm install
 npm run build

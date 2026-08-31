@@ -5,6 +5,8 @@ import { execa } from 'execa';
 
 import { DockerCli } from '../../docker/inspect.js';
 import { hasDevcontainerCli } from '../../docker/devcontainer-cli.js';
+import { DUAL_AGENT_TEMPLATES } from '../../templates/ai.js';
+import { workspaceStateDir } from '../../templates/isolate.js';
 import { exists } from '../../util/fs.js';
 import { bucklePaths } from '../../util/paths.js';
 import { styles } from '../../util/log.js';
@@ -92,6 +94,21 @@ export async function runDoctor(ctx: CliContext): Promise<number> {
   } catch {
     checks.push({ name: 'docker.buildx', status: 'warn', message: 'docker buildx not available' });
   }
+
+  const isolateOn = ctx.flags.isolate !== false;
+  checks.push({
+    name: 'ai.isolate',
+    status: 'pass',
+    message: isolateOn
+      ? `per-workspace agent state (${workspaceStateDir(ctx.cwd)}; --share-home to bind host ~/.claude and ~/.grok)`
+      : 'sharing host ~/.claude and ~/.grok (--share-home)',
+  });
+
+  checks.push({
+    name: 'ai.templates',
+    status: 'pass',
+    message: `dual-agent ready: ${DUAL_AGENT_TEMPLATES.join(', ')} (Claude Code + Grok Build)`,
+  });
 
   const overall = checks.some((c) => c.status === 'fail')
     ? 'broken'
