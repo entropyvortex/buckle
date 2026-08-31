@@ -39,7 +39,7 @@ All notable changes to this project are documented here. The format is based on
 - Trust-surface hashes use a key-sorted serializer (no false “changed” from key order).
 - Unknown convenience features raise `BuckleError` (`E_TEMPLATE_INVALID`).
 - Generated file banners and docs point at `entropyvortex/buckle`.
-- CI runs coverage thresholds; CodeQL workflow added.
+- CI runs coverage thresholds. Code scanning uses GitHub's default CodeQL setup.
 
 ### Security
 
