@@ -145,7 +145,7 @@ export async function renderTemplate(ctx: CliContext, args: RenderArgs): Promise
   return { template: resolved.merged, hash, plan: p, written, trusted };
 }
 
-function formatTrustSurface(t: Template): string[] {
+export function formatTrustSurface(t: Template): string[] {
   const lines: string[] = [];
   const hooks = t.lifecycle ?? {};
   for (const [name, steps] of Object.entries(hooks)) {

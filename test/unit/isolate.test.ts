@@ -8,7 +8,9 @@ import { buildDevcontainer } from '../../src/generators/devcontainer.js';
 import {
   isolateHomeMounts,
   isolatedMountSource,
+  stripHomeMounts,
   workspaceStateId,
+  workspaceStateRoot,
 } from '../../src/templates/isolate.js';
 import type { Template } from '../../src/templates/schema.js';
 
@@ -48,6 +50,48 @@ describe('isolateHomeMounts', () => {
     const a = await mkdtemp(join(tmpdir(), 'app-'));
     const b = await mkdtemp(join(tmpdir(), 'app-'));
     expect(workspaceStateId(a)).not.toBe(workspaceStateId(b));
+  });
+
+  it('returns the template unchanged when there are no mounts', () => {
+    const t: Template = { version: '0.1.0', image: 'foo:1' };
+    expect(isolateHomeMounts(t, '/tmp/x')).toBe(t);
+    expect(stripHomeMounts(t)).toBe(t);
+  });
+
+  it('stripHomeMounts drops AI and gitconfig binds and leaves others', () => {
+    const t: Template = {
+      version: '0.1.0',
+      image: 'foo:1',
+      mounts: [
+        { source: '${localEnv:HOME}/.claude', target: '/home/vscode/.claude', type: 'bind' },
+        { source: '${localEnv:HOME}/.gitconfig', target: '/home/vscode/.gitconfig', type: 'bind' },
+        { source: '/var/run/docker.sock', target: '/var/run/docker.sock', type: 'bind' },
+      ],
+    };
+    const out = stripHomeMounts(t);
+    expect(out.mounts).toEqual([
+      { source: '/var/run/docker.sock', target: '/var/run/docker.sock', type: 'bind' },
+    ]);
+  });
+
+  it('stripHomeMounts is a no-op when nothing matches', () => {
+    const t: Template = {
+      version: '0.1.0',
+      image: 'foo:1',
+      mounts: [{ source: '/a', target: '/b', type: 'bind' }],
+    };
+    expect(stripHomeMounts(t)).toBe(t);
+  });
+
+  it('workspaceStateRoot falls back to XDG data home', () => {
+    const prev = process.env['BUCKLE_STATE_DIR'];
+    delete process.env['BUCKLE_STATE_DIR'];
+    try {
+      expect(workspaceStateRoot().replace(/\\/g, '/')).toMatch(/buckle\/workspaces$/);
+    } finally {
+      if (prev === undefined) delete process.env['BUCKLE_STATE_DIR'];
+      else process.env['BUCKLE_STATE_DIR'] = prev;
+    }
   });
 });
 

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { applyPlan, plan, summarizePlan } from '../../src/generators/writer.js';
+import { applyPlan, plan, renderDiff, summarizePlan } from '../../src/generators/writer.js';
 import type { Template } from '../../src/templates/schema.js';
 
 describe('writer plan/apply', () => {
@@ -78,5 +78,35 @@ describe('writer plan/apply', () => {
     const p = await plan(t, { cwd: dir, projectName: 'proj' });
     expect(p.warnings).toBeDefined();
     expect(p.warnings?.some((w) => w.includes('compose + dind'))).toBe(true);
+  });
+
+  it('surfaces compose + dod and remoteUser mismatch warnings', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'buckle-w-'));
+    const t: Template = {
+      version: '0.1.0',
+      image: 'foo:1',
+      compose: { file: 'docker-compose.yml', service: 'app' },
+      features: ['dod'],
+      remoteUser: 'vscode',
+      containerUser: 'root',
+    };
+    const p = await plan(t, { cwd: dir, projectName: 'proj' });
+    expect(p.warnings?.some((w) => w.includes('compose + dod'))).toBe(true);
+    expect(p.warnings?.some((w) => w.includes('remoteUser'))).toBe(true);
+  });
+
+  it('renderDiff includes warnings and created files', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'buckle-w-'));
+    const t: Template = {
+      version: '0.1.0',
+      image: 'foo:1',
+      compose: { file: 'docker-compose.yml', service: 'app' },
+      features: ['dind'],
+    };
+    const p = await plan(t, { cwd: dir, projectName: 'proj' });
+    const diff = renderDiff(p);
+    expect(diff).toContain('# Warnings from buckle:');
+    expect(diff).toContain('(created)');
+    expect(diff).toContain('+ ');
   });
 });

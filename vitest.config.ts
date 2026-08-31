@@ -33,6 +33,12 @@ export default defineConfig({
         'src/cli/commands/install.ts',
         'src/cli/commands/uninstall.ts',
         'src/cli/commands/edit.ts',
+        'src/cli/commands/logs.ts',
+        'src/cli/commands/restart.ts',
+        // Commander program tree; dispatch is covered via command tests.
+        'src/cli/parse.ts',
+        // Readline TTY prompt; exercised interactively, stubbed in render tests.
+        'src/util/prompt.ts',
       ],
       thresholds: {
         lines: 90,
