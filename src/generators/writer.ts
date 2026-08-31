@@ -1,7 +1,8 @@
 import { join } from 'node:path';
 
+import { isolatedMountSource } from '../templates/isolate.js';
 import type { Template } from '../templates/schema.js';
-import { exists, readText, writeTextAtomic } from '../util/fs.js';
+import { ensureDir, exists, readText, writeTextAtomic } from '../util/fs.js';
 import { renderCompose } from './compose.js';
 import { buildDevcontainer, serializeDevcontainer } from './devcontainer.js';
 import { renderDockerfile } from './dockerfile.js';
@@ -18,7 +19,7 @@ export interface RenderOptions {
   projectName: string;
   /** Default base image when generating a fresh Dockerfile. */
   defaultBaseImage?: string;
-  /** Isolation flag: drop host home mounts (and related env) for first-creation troubleshooting. */
+  /** Isolation flag: remap AI home mounts onto per-workspace state (default true). */
   isolate?: boolean;
 }
 
@@ -30,8 +31,15 @@ export async function plan(t: Template, opts: RenderOptions): Promise<RenderPlan
   const dcDir = join(opts.cwd, '.devcontainer');
   const files: RenderPlan['files'] = [];
 
+  const isolate = opts.isolate !== false;
+  if (isolate) {
+    await ensureDir(isolatedMountSource(opts.cwd, 'claude'));
+    await ensureDir(isolatedMountSource(opts.cwd, 'grok'));
+  }
+
   const dc = buildDevcontainer(t, opts.projectName, {
-    ...(opts.isolate ? { isolate: true } : {}),
+    isolate,
+    cwd: opts.cwd,
   });
   const dcJson = serializeDevcontainer(dc);
   const dcPath = join(dcDir, 'devcontainer.json');
