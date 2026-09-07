@@ -39,6 +39,7 @@ import { join } from 'node:path';
 import { makeContext, type CliFlags } from './context.js';
 import { templateExists } from '../templates/loader.js';
 import { exists } from '../util/fs.js';
+import { packageVersion } from '../util/version.js';
 
 export interface RunResult {
   exitCode: number;
@@ -67,7 +68,15 @@ function attachGlobals(cmd: Command): Command {
     .option('--installed-only', 'list installed (non-built-in) templates only')
     .option('--force', 'force overwrite on install')
     .option('--preview, --dry-run', 'show what would be written without changing the filesystem')
-    .option('--isolate', 'skip bind-mounts + related containerEnv for host AI/home dirs (~/.claude, ~/.grok, ~/.gitconfig) — escape hatch for first-creation friction on some macOS arm64 setups');
+    .option(
+      '--isolate',
+      'keep AI agent skills/config per workspace (default). Each container gets its own ~/.claude and ~/.grok under $XDG_DATA_HOME/buckle/workspaces/',
+    )
+    .option('--no-isolate', 'alias for --share-home')
+    .option(
+      '--share-home',
+      'bind-mount host ~/.claude, ~/.grok, and ~/.gitconfig into the container (disables per-workspace isolation)',
+    );
 }
 
 function readGlobals(cmd: Command): CliFlags {
@@ -84,7 +93,9 @@ function readGlobals(cmd: Command): CliFlags {
     installedOnly: Boolean(o['installedOnly']),
     force: Boolean(o['force']),
     preview: Boolean(o['preview']),
-    isolate: Boolean(o['isolate']),
+    shareHome: Boolean(o['shareHome']),
+    // Isolation is the default. --share-home or --no-isolate opts out.
+    isolate: Boolean(o['shareHome']) ? false : o['isolate'] !== false,
   };
   if (typeof o['user'] === 'string') out.user = o['user'];
   return out;
@@ -163,7 +174,7 @@ async function runProgram(argv: string[]): Promise<RunResult> {
   program
     .name('buckle')
     .description('One verb for devcontainers — generate, build, up, and bash with user-wide templates.')
-    .version('0.1.0', '-V, --version', 'print the buckle version');
+    .version(packageVersion(), '-V, --version', 'print the buckle version');
 
   attachGlobals(program);
 

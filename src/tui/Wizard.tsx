@@ -4,8 +4,10 @@ import SelectInput from 'ink-select-input';
 import Spinner from 'ink-spinner';
 
 import { detectProject, type AutoDetectResult } from '../templates/autodetect.js';
+import { isDualAgentTemplate } from '../templates/ai.js';
 import { listFeatures } from '../features/catalog.js';
 import { listCatalog } from '../templates/loader.js';
+import { loadConfigSync } from '../util/config.js';
 import { Logo } from './components/Logo.js';
 import { getContext, getDriver, getRenderTemplate, type TuiServices } from './dependencies.js';
 
@@ -28,7 +30,9 @@ export function Wizard({ cwd, services, initialIntent }: WizardProps): React.Rea
   const { exit } = useApp();
   const [step, setStep] = useState<Step>('detect');
   const [detection, setDetection] = useState<AutoDetectResult | null>(null);
-  const [templates, setTemplates] = useState<{ name: string; description?: string }[]>([]);
+  const [templates, setTemplates] = useState<
+    { name: string; description?: string; origin: 'builtin' | 'user' | 'installed' }[]
+  >([]);
   const [chosenTemplate, setChosenTemplate] = useState<string>('');
   const [chosenFeatures, setChosenFeatures] = useState<string[]>([]);
   const [featureCursor, setFeatureCursor] = useState<number>(0);
@@ -42,9 +46,15 @@ export function Wizard({ cwd, services, initialIntent }: WizardProps): React.Rea
     let cancelled = false;
     (async () => {
       try {
-        const det = await detectProject(cwd);
-        const cat = await listCatalog();
+        const detect = services?.detectProject ?? detectProject;
+        const catalog = services?.listCatalog ?? listCatalog;
+        const det = await detect(cwd);
+        const cat = await catalog();
         if (cancelled) return;
+        const cfg = loadConfigSync();
+        if (cfg.defaultTemplate && !det.suggestions.includes(cfg.defaultTemplate)) {
+          det.suggestions = [cfg.defaultTemplate, ...det.suggestions];
+        }
         setDetection(det);
         setTemplates(cat);
         setStep('pick-template');
@@ -56,7 +66,7 @@ export function Wizard({ cwd, services, initialIntent }: WizardProps): React.Rea
     return () => {
       cancelled = true;
     };
-  }, [step, cwd]);
+  }, [step, cwd, services]);
 
   // Step: pick-features (custom keyboard).
   useInput((input, key) => {
@@ -93,12 +103,14 @@ export function Wizard({ cwd, services, initialIntent }: WizardProps): React.Rea
     let cancelled = false;
     (async () => {
       try {
-        const ctx = getContext(services, { yes: true, trust: true, feature: chosenFeatures });
+        const origin = templates.find((t) => t.name === chosenTemplate)?.origin;
+        const trustBuiltin = origin === 'builtin';
+        const ctx = getContext(services, { yes: true, trust: trustBuiltin, feature: chosenFeatures });
         const render = getRenderTemplate(services);
         const out = await render(ctx, {
           templateName: chosenTemplate,
           features: chosenFeatures,
-          trust: true,
+          trust: trustBuiltin,
           yes: true,
         });
         if (cancelled) return;
@@ -199,7 +211,7 @@ export function Wizard({ cwd, services, initialIntent }: WizardProps): React.Rea
 
 interface PickTemplateProps {
   detection: AutoDetectResult;
-  templates: { name: string; description?: string }[];
+  templates: { name: string; description?: string; origin: 'builtin' | 'user' | 'installed' }[];
   onPick: (name: string) => void;
 }
 
@@ -208,12 +220,17 @@ function PickTemplate({ detection, templates, onPick }: PickTemplateProps): Reac
     // Show suggestions first, then alphabetical rest.
     const head = detection.suggestions
       .map((n) => templates.find((t) => t.name === n))
-      .filter((x): x is { name: string; description?: string } => Boolean(x));
+      .filter(
+        (x): x is { name: string; description?: string; origin: 'builtin' | 'user' | 'installed' } => Boolean(x),
+      );
     const rest = templates.filter((t) => !detection.suggestions.includes(t.name));
-    return [...head, ...rest].map((t) => ({
-      label: `${t.name.padEnd(16)} ${t.description ?? ''}`,
-      value: t.name,
-    }));
+    return [...head, ...rest].map((t) => {
+      const dual = isDualAgentTemplate(t.name) ? ' · dual-agent' : '';
+      return {
+        label: `${t.name.padEnd(16)} ${t.description ?? ''}${dual}`,
+        value: t.name,
+      };
+    });
   }, [detection, templates]);
 
   return (

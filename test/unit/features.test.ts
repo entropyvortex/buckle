@@ -114,7 +114,7 @@ describe('applyFeatures', () => {
 
   it('throws on unknown feature', () => {
     const t: Template = { version: '0.1.0', image: 'foo:1', features: ['definitely-not-real'] };
-    expect(() => applyFeatures(t)).toThrow();
+    expect(() => applyFeatures(t)).toThrow(/unknown feature/);
   });
 
   it('returns input unchanged when no features', () => {

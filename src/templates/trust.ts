@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import { exists, readTextOrUndefined, writeTextAtomic } from '../util/fs.js';
 import { bucklePaths } from '../util/paths.js';
+import { stableStringify } from '../util/stable-json.js';
 import type { Template } from './schema.js';
 
 export interface TrustEntry {
@@ -44,7 +45,7 @@ export function hookSurfaceHash(t: Template): string {
     nativeFeatures: t.nativeFeatures ?? null,
     customizations: t.customizations ?? null,
   };
-  return createHash('sha256').update(JSON.stringify(surface)).digest('hex');
+  return createHash('sha256').update(stableStringify(surface)).digest('hex');
 }
 
 export interface TrustDecision {

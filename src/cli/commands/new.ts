@@ -46,7 +46,7 @@ export async function runNew(ctx: CliContext, args: NewArgs): Promise<number> {
     },
   };
   const text =
-    `# Buckle template: ${args.name}\n# See https://github.com/buckle-dev/buckle for the schema.\n\n` +
+    `# Buckle template: ${args.name}\n# See https://github.com/entropyvortex/buckle for the schema.\n\n` +
     yamlStringify(starter);
   await writeTextAtomic(dest, text);
   if (ctx.flags.json) emit(jsonOk({ name: args.name, path: dest }, ctx.cwd));

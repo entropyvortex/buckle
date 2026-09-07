@@ -10,6 +10,7 @@ import type { Template } from '../templates/schema.js';
 import { checkTrust, hookSurfaceHash, recordTrust } from '../templates/trust.js';
 import { applyPlan, plan, renderDiff, summarizePlan, type RenderPlan } from '../generators/writer.js';
 import { BuckleError, ErrorCode } from '../util/errors.js';
+import { promptYesNo } from '../util/prompt.js';
 import type { CliContext } from './context.js';
 
 export interface RenderArgs {
@@ -56,25 +57,30 @@ export async function renderTemplate(ctx: CliContext, args: RenderArgs): Promise
   if (!trusted) {
     const decision = await checkTrust(hash, surface);
     if (!decision.trusted) {
-      // For non-interactive contexts, surface a clear error.
+      const reason = decision.changed
+        ? `template "${args.templateName}" lifecycle hooks have changed since you last trusted it`
+        : `template "${args.templateName}" has unverified lifecycle hooks`;
+      // Non-interactive / JSON: never silently trust.
       if (process.stdin.isTTY !== true || ctx.flags.json) {
         throw new BuckleError(
           ErrorCode.E_HASH_MISMATCH,
-          decision.changed
-            ? `template "${args.templateName}" lifecycle hooks have changed since you last trusted it`
-            : `template "${args.templateName}" has unverified lifecycle hooks; review them before running`,
-          're-run with --trust after reviewing the template, or run interactively to be prompted',
+          reason,
+          'review with `buckle view`, then re-run with --trust',
         );
       }
-      // Interactive: print the surface and ask.
-      ctx.logger.warn(
-        `Template "${args.templateName}" wants to run lifecycle commands on first use. Run "buckle view ${args.templateName}" to inspect, or pass --trust to accept.`,
-      );
-      throw new BuckleError(
-        ErrorCode.E_USER_ABORT,
-        'aborted: template not trusted',
-        'pass --trust on the next run to accept the lifecycle commands',
-      );
+      ctx.logger.warn(reason);
+      ctx.logger.info('executable surface (lifecycle, mounts, runArgs, features):');
+      for (const line of formatTrustSurface(resolved.merged)) {
+        ctx.logger.info(`  ${line}`);
+      }
+      const accepted = await promptYesNo('Trust this template and continue? [y/N] ');
+      if (!accepted) {
+        throw new BuckleError(
+          ErrorCode.E_USER_ABORT,
+          'aborted: template not trusted',
+          'pass --trust on the next run after reviewing with `buckle view`',
+        );
+      }
     }
     trusted = true;
   }
@@ -85,13 +91,11 @@ export async function renderTemplate(ctx: CliContext, args: RenderArgs): Promise
     await recordTrust(hash, surface);
   }
 
-  // Pass --isolate through; stripping of home mounts happens after feature expansion inside
-  // buildDevcontainer (so both template-declared and feature-injected mounts are removed).
   const projectName = basename(ctx.cwd);
   const p = await plan(resolved.merged, {
     cwd: ctx.cwd,
     projectName,
-    ...(ctx.flags.isolate ? { isolate: true } : {}),
+    isolate: ctx.flags.isolate !== false,
   });
   const summary = summarizePlan(p);
   for (const s of summary) {
@@ -127,9 +131,7 @@ export async function renderTemplate(ctx: CliContext, args: RenderArgs): Promise
       return { template: resolved.merged, hash, plan: p, written: false, trusted };
     }
     if (!args.yes && process.stdin.isTTY === true && !ctx.flags.json) {
-      // Best-effort interactive confirmation. In headless contexts (--yes / non-TTY),
-      // we proceed without prompting.
-      const confirmed = await confirm(`Apply changes to .devcontainer/ in ${ctx.cwd}? [y/N] `);
+      const confirmed = await promptYesNo(`Apply changes to .devcontainer/ in ${ctx.cwd}? [y/N] `);
       if (!confirmed) {
         throw new BuckleError(ErrorCode.E_USER_ABORT, 'aborted by user');
       }
@@ -143,14 +145,24 @@ export async function renderTemplate(ctx: CliContext, args: RenderArgs): Promise
   return { template: resolved.merged, hash, plan: p, written, trusted };
 }
 
-async function confirm(prompt: string): Promise<boolean> {
-  return new Promise((resolveP) => {
-    process.stderr.write(prompt);
-    const onData = (chunk: Buffer) => {
-      const ans = chunk.toString().trim().toLowerCase();
-      process.stdin.off('data', onData);
-      resolveP(ans === 'y' || ans === 'yes');
-    };
-    process.stdin.once('data', onData);
-  });
+export function formatTrustSurface(t: Template): string[] {
+  const lines: string[] = [];
+  const hooks = t.lifecycle ?? {};
+  for (const [name, steps] of Object.entries(hooks)) {
+    if (!steps || steps.length === 0) continue;
+    const cmds = steps.map((s) => (typeof s === 'string' ? s : s.command));
+    lines.push(`${name}: ${cmds.join(' && ')}`);
+  }
+  if (t.mounts && t.mounts.length > 0) {
+    for (const m of t.mounts) {
+      lines.push(`mount: ${m.source} → ${m.target} (${m.type ?? 'bind'})`);
+    }
+  }
+  if (t.runArgs && t.runArgs.length > 0) lines.push(`runArgs: ${t.runArgs.join(' ')}`);
+  if (t.features && t.features.length > 0) {
+    const names = t.features.map((f) => (typeof f === 'string' ? f : f[0]));
+    lines.push(`features: ${names.join(', ')}`);
+  }
+  if (lines.length === 0) lines.push('(no lifecycle, mounts, runArgs, or features)');
+  return lines;
 }

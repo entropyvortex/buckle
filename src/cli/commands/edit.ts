@@ -14,7 +14,7 @@ export async function runEdit(ctx: CliContext, args: { template: string }): Prom
       `run "buckle view ${args.template}" to inspect, or "buckle new ${args.template} --extend ${args.template}" to create an editable copy`,
     );
   }
-  const editor = process.env['VISUAL'] ?? process.env['EDITOR'] ?? 'vi';
+  const editor = ctx.config.editor ?? process.env['VISUAL'] ?? process.env['EDITOR'] ?? 'vi';
   return new Promise((resolveP) => {
     const proc = spawn(editor, [rec.path], { stdio: 'inherit' });
     proc.on('exit', (code) => resolveP(code ?? 0));

@@ -1,10 +1,13 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
+import SelectInput from 'ink-select-input';
 import Spinner from 'ink-spinner';
 
 import type { ContainerInfo, Status } from '../docker/inspect.js';
+import { isDualAgentTemplate } from '../templates/ai.js';
+import { listCatalog } from '../templates/loader.js';
 import { Logo } from './components/Logo.js';
-import { getDriver, type TuiServices } from './dependencies.js';
+import { getContext, getDriver, getRenderTemplate, type TuiServices } from './dependencies.js';
 
 interface StatusPanelProps {
   cwd: string;
@@ -21,11 +24,15 @@ interface StatusState {
   flash?: string;
 }
 
-const KEY_HINTS = '↑ rebuild • ▶ start (b) bash • ⏹ stop (s) • ⚙ reconfigure (c) • ❌ down (d) • q to quit';
+type Mode = 'status' | 'reconfigure';
+
+const KEY_HINTS = 'r rebuild · u up · s/d down · b bash · c reconfigure · q quit';
 
 export function StatusPanel({ cwd, services }: StatusPanelProps): React.ReactElement {
   const { exit } = useApp();
   const [state, setState] = useState<StatusState>({ status: 'absent', name: '', loading: true });
+  const [mode, setMode] = useState<Mode>('status');
+  const [templates, setTemplates] = useState<{ name: string; description?: string; origin: string }[]>([]);
 
   const refresh = useCallback(async () => {
     setState((s) => ({ ...s, loading: true }));
@@ -49,10 +56,10 @@ export function StatusPanel({ cwd, services }: StatusPanelProps): React.ReactEle
     const fromEnv = Number(process.env['BUCKLE_STATUS_REFRESH'] ?? '');
     const ms = Number.isFinite(fromEnv) && fromEnv >= 1000 ? fromEnv : 5000;
     const id = setInterval(() => {
-      void refresh();
+      if (mode === 'status') void refresh();
     }, ms);
     return () => clearInterval(id);
-  }, [refresh]);
+  }, [refresh, mode]);
 
   const action = useCallback(
     async (op: 'rebuild' | 'up' | 'down' | 'bash') => {
@@ -70,7 +77,6 @@ export function StatusPanel({ cwd, services }: StatusPanelProps): React.ReactEle
           await driver.up({ rebuild: true, quiet: true });
           setState((s) => ({ ...s, flash: 'rebuild done' }));
         } else if (op === 'bash') {
-          // Detach the TUI before bashing in.
           exit();
           process.nextTick(async () => {
             await driver.bash({});
@@ -86,14 +92,68 @@ export function StatusPanel({ cwd, services }: StatusPanelProps): React.ReactEle
     [cwd, exit, refresh, services],
   );
 
-  useInput((input, _key) => {
+  const startReconfigure = useCallback(async () => {
+    try {
+      const catalog = services?.listCatalog ?? listCatalog;
+      const cat = await catalog();
+      setTemplates(cat);
+      setMode('reconfigure');
+    } catch (e) {
+      setState((s) => ({ ...s, error: (e as Error).message }));
+    }
+  }, [services]);
+
+  const applyReconfigure = useCallback(
+    async (templateName: string) => {
+      setMode('status');
+      setState((s) => ({ ...s, loading: true, flash: `reconfiguring ${templateName}…` }));
+      try {
+        const origin = templates.find((t) => t.name === templateName)?.origin;
+        const trust = origin === 'builtin';
+        const ctx = getContext(services, { yes: true, trust });
+        const render = getRenderTemplate(services);
+        await render(ctx, { templateName, features: ctx.flags.feature ?? [], trust, yes: true });
+        setState((s) => ({ ...s, flash: `rewrote .devcontainer/ from ${templateName}` }));
+        await refresh();
+      } catch (e) {
+        setState((s) => ({ ...s, loading: false, error: (e as Error).message }));
+      }
+    },
+    [refresh, services, templates],
+  );
+
+  useInput((input, key) => {
+    if (mode === 'reconfigure') {
+      if (input === 'q' || key.escape) setMode('status');
+      return;
+    }
     if (input === 'q') exit();
     else if (input === 'r') void action('rebuild');
-    else if (input === 's') void action('down');
+    else if (input === 's' || input === 'd') void action('down');
     else if (input === 'b') void action('bash');
     else if (input === 'u') void action('up');
-    else if (input === 'd') void action('down');
+    else if (input === 'c') void startReconfigure();
   });
+
+  const reconfigureItems = useMemo(
+    () =>
+      templates.map((t) => ({
+        label: `${t.name.padEnd(16)} ${t.description ?? ''}${isDualAgentTemplate(t.name) ? ' · dual-agent' : ''}`,
+        value: t.name,
+      })),
+    [templates],
+  );
+
+  if (mode === 'reconfigure') {
+    return (
+      <Box flexDirection="column">
+        <Logo />
+        <Text>reconfigure .devcontainer/ in {cwd}</Text>
+        <Text dimColor>pick a template · esc/q to cancel</Text>
+        <SelectInput items={reconfigureItems} onSelect={(item) => void applyReconfigure(item.value)} />
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column">
@@ -137,7 +197,7 @@ export function StatusPanel({ cwd, services }: StatusPanelProps): React.ReactEle
         </Box>
       )}
       <Box marginTop={1}>
-        <Text dimColor>r rebuild • u up • s/d down • b bash • q quit</Text>
+        <Text dimColor>{KEY_HINTS}</Text>
       </Box>
     </Box>
   );

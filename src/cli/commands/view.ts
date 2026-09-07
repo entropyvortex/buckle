@@ -17,7 +17,8 @@ export async function runView(ctx: CliContext, args: ViewArgs): Promise<number> 
   const resolved = await resolveTemplate(args.template, { overlay });
   // isolate is passed to build so that feature-expanded mounts (and env) are also filtered.
   const dc = buildDevcontainer(resolved.merged, 'view', {
-    ...(ctx.flags.isolate ? { isolate: true } : {}),
+    isolate: ctx.flags.isolate !== false,
+    cwd: ctx.cwd,
   });
   if (ctx.flags.json) {
     emit(jsonOk({ template: args.template, devcontainer: dc }, ctx.cwd));

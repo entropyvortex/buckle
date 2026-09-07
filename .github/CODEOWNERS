@@ -1,6 +1,6 @@
 # Default owners for everything in the repo.
 # These owners will be requested for review on all pull requests.
-*       @buckle-dev/maintainers
+*       @marceloceccon
 
 # Core team members can be added here as the project grows.
 # Example:

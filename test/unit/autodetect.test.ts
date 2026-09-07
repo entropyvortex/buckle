@@ -17,10 +17,10 @@ async function fixture(files: Record<string, string>): Promise<string> {
 }
 
 describe('detectProject', () => {
-  it('falls back to ubuntu-base in an empty directory', async () => {
+  it('falls back to ai-native then ubuntu-base in an empty directory', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'buckle-empty-'));
     const r = await detectProject(dir);
-    expect(r.suggestions[0]).toBe('ubuntu-base');
+    expect(r.suggestions).toEqual(['ai-native', 'ubuntu-base']);
   });
 
   it('detects node from package-lock.json', async () => {

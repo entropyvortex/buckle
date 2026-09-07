@@ -17,7 +17,7 @@ the latest minor of the current major and the previous major receive fixes for 6
 ## Reporting a vulnerability
 
 **Please do not open a public issue for security reports.** Instead, email
-**security@buckle.dev** with:
+**marcelo@ceccon.org** (or **security@buckle.dev** if that mailbox is reachable) with:
 
 - a clear description of the issue,
 - a minimal reproducer,
@@ -56,8 +56,12 @@ that has been granted host access (e.g., via `dod` or bind-mounts).
 - `buckle edit <name>` opens the template for review before you trust it.
 - `buckle <name> --preview` (or `--dry-run`) emits the full diff of generated files without
   touching disk.
-- The trust prompt is **non-interactive-aware**: in CI / non-TTY contexts, the prompt becomes a
-  hard error (`E_HASH_MISMATCH`); you must opt in explicitly with `--trust`.
+- On a TTY, buckle prints the executable surface and prompts `[y/N]`.
+- In CI / `--json` / non-TTY contexts the prompt becomes a hard error (`E_HASH_MISMATCH`);
+  you must opt in explicitly with `--trust`.
+- Built-in templates are pre-trusted. User and installed templates are not.
+- Agent config dirs (`~/.claude`, `~/.grok`) are isolated per workspace by default so
+  skills and credentials do not leak across containers. `--share-home` restores host binds.
 
 **Out of scope**: We do *not* statically analyze the body of `postCreate` commands. The trust
 boundary is your eyes — the same as `make` or `npm install`.
@@ -122,6 +126,5 @@ resolution.
 
 ## Contact
 
-- General security issues: **security@buckle.dev**
-- Public discussion: `#security` in the project chat
-- Maintainer GPG keys: Available upon request via the security email above.
+- General security issues: **marcelo@ceccon.org**
+- Maintainer GPG keys: listed in [MAINTAINERS.md](MAINTAINERS.md) (available on request)

@@ -1,4 +1,6 @@
+import { deepMerge } from '../templates/resolver.js';
 import type { Template } from '../templates/schema.js';
+import { BuckleError, ErrorCode } from '../util/errors.js';
 
 /**
  * The Buckle convenience-feature catalog.
@@ -19,16 +21,7 @@ const NATIVE = (id: string, opts: Record<string, unknown> = {}): FeaturePatch =>
 });
 
 function deepMergePatch(a: FeaturePatch, b: FeaturePatch): FeaturePatch {
-  // local minimal merge, mirrors resolver semantics for arrays-append/objects-merge.
-  const out: Record<string, unknown> = { ...a };
-  for (const [k, v] of Object.entries(b)) {
-    const existing = out[k];
-    if (Array.isArray(existing) && Array.isArray(v)) out[k] = [...existing, ...v];
-    else if (existing && typeof existing === 'object' && v && typeof v === 'object' && !Array.isArray(v))
-      out[k] = deepMergePatch(existing as FeaturePatch, v as FeaturePatch);
-    else out[k] = v;
-  }
-  return out as FeaturePatch;
+  return deepMerge(a, b) as FeaturePatch;
 }
 
 const CATALOG: Record<string, FeatureFn> = {
@@ -143,7 +136,7 @@ function mcpFeature(name: string): FeaturePatch {
   const pkg = name.startsWith('@') ? name : `@modelcontextprotocol/server-${name}`;
   return {
     lifecycle: {
-      postCreate: [`npm install -g ${pkg} || true`],
+      postCreate: [`npm install -g ${pkg}`],
     },
   };
 }
@@ -200,7 +193,7 @@ export function compileFeature(spec: FeatureSpec): FeaturePatch {
   }
   const fn = CATALOG[spec.name];
   if (!fn) {
-    throw new Error(`unknown feature: ${spec.name}`);
+    throw new BuckleError(ErrorCode.E_TEMPLATE_INVALID, `unknown feature: ${spec.name}`);
   }
   return fn(spec.arg);
 }
@@ -211,8 +204,8 @@ export function listFeatures(): { name: string; description: string }[] {
     { name: 'dind', description: 'Docker in docker (privileged dockerd)' },
     { name: 'gh', description: 'GitHub CLI' },
     { name: 'git-config', description: 'Bind-mount host ~/.gitconfig read-only' },
-    { name: 'claude-code', description: 'Install Claude Code CLI; mount ~/.claude (pairs excellently with grok)' },
-    { name: 'grok', description: 'Install Grok Build (xAI); mount ~/.grok (pairs excellently with claude-code)' },
+    { name: 'claude-code', description: 'Install Claude Code CLI; isolated per workspace by default (pairs with grok)' },
+    { name: 'grok', description: 'Install Grok Build (xAI); isolated per workspace by default (pairs with claude-code)' },
     { name: 'grok-build', description: 'Alias for grok' },
     { name: 'mcp:<name>', description: 'Install an MCP server (filesystem, github, …)' },
     { name: 'aws', description: 'AWS CLI v2' },

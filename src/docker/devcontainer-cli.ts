@@ -92,8 +92,9 @@ export async function up(opts: UpOptions): Promise<{ containerId: string }> {
       hint +=
         '\n\nThis is usually caused by a bad cached features image layer.\n' +
         'Try:  buckle up <template> --rebuild     (forces a clean no-cache build)\n' +
-        'As a last resort for macOS arm64 + AI mounts on first creation, try --isolate:\n' +
-        '  buckle up <template> --trust --rebuild --isolate';
+        'Isolation is on by default (per-workspace ~/.claude and ~/.grok). If a host-home bind is the problem,\n' +
+        're-render without --share-home. To share the host agent dirs instead:\n' +
+        '  buckle up <template> --trust --rebuild --share-home';
     }
 
     throw new BuckleError(
