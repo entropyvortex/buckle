@@ -1,4 +1,5 @@
 /** `buckle list` — built-in + user + installed templates. */
+import { isDualAgentTemplate } from '../../templates/ai.js';
 import { listCatalog } from '../../templates/loader.js';
 import { styles } from '../../util/log.js';
 import type { CliContext } from '../context.js';
@@ -9,7 +10,17 @@ export async function runList(ctx: CliContext): Promise<number> {
   const filtered = ctx.flags.installedOnly ? items.filter((i) => i.origin !== 'builtin') : items;
 
   if (ctx.flags.json) {
-    emit(jsonOk({ templates: filtered }, ctx.cwd));
+    emit(
+      jsonOk(
+        {
+          templates: filtered.map((t) => ({
+            ...t,
+            dualAgent: isDualAgentTemplate(t.name),
+          })),
+        },
+        ctx.cwd,
+      ),
+    );
     return 0;
   }
   if (filtered.length === 0) {
@@ -18,13 +29,14 @@ export async function runList(ctx: CliContext): Promise<number> {
   }
   const widest = filtered.reduce((m, i) => Math.max(m, i.name.length), 0);
   for (const item of filtered) {
-    const tag =
+    const originTag =
       item.origin === 'builtin'
         ? styles.gray('built-in')
         : item.origin === 'user'
           ? styles.cyan('user')
           : styles.green(`installed${item.installOrigin ? ` (${item.installOrigin.slice(0, 8)})` : ''}`);
-    process.stdout.write(`  ${item.name.padEnd(widest)}  ${tag}  ${item.description ?? ''}\n`);
+    const dual = isDualAgentTemplate(item.name) ? ` ${styles.cyan('dual-agent')}` : '';
+    process.stdout.write(`  ${item.name.padEnd(widest)}  ${originTag}${dual}  ${item.description ?? ''}\n`);
   }
   return 0;
 }

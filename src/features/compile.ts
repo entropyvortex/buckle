@@ -1,5 +1,6 @@
 import { deepMerge } from '../templates/resolver.js';
 import type { Template } from '../templates/schema.js';
+import { BuckleError, ErrorCode } from '../util/errors.js';
 import { compileFeature, isKnownFeature, parseFeatureSpec } from './catalog.js';
 
 /**
@@ -18,7 +19,11 @@ export function applyFeatures(t: Template): Template {
   for (const entry of featuresIn) {
     const raw = typeof entry === 'string' ? entry : entry[0];
     if (!isKnownFeature(raw)) {
-      throw new Error(`unknown feature in template: "${raw}"`);
+      throw new BuckleError(
+        ErrorCode.E_TEMPLATE_INVALID,
+        `unknown feature in template: "${raw}"`,
+        'run `buckle list` and `buckle doctor` for the convenience catalog, or pass a native ghcr.io/ feature id',
+      );
     }
     const spec = parseFeatureSpec(raw);
     if (typeof entry !== 'string' && entry.length === 2) {

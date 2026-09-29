@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { BuckleError, ErrorCode } from '../util/errors.js';
+import { stableStringify } from '../util/stable-json.js';
 import { findTemplate, type CatalogOptions, type TemplateRecord } from './loader.js';
 import { TemplateSchema, validateSourceMutex, type Template } from './schema.js';
 
@@ -117,15 +118,6 @@ function stripExtends(t: Template): Template {
   // Strip the `extends` field once we've inlined parents — clean output.
   const { extends: _e, ...rest } = t;
   return rest as Template;
-}
-
-/** Stable JSON serializer for hashing (sorted keys, no formatting). */
-function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
-  const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(',')}}`;
 }
 
 export function templateHash(t: Template): string {

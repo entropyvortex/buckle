@@ -5,7 +5,7 @@ Thank you for your interest in contributing to buckle!
 ## Development Setup
 
 ```bash
-git clone https://github.com/buckle-dev/buckle.git
+git clone https://github.com/entropyvortex/buckle.git
 cd buckle
 npm install
 npm run build

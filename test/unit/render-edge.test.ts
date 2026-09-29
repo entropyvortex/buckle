@@ -74,4 +74,12 @@ lifecycle:
     const r = await renderTemplate(ctx, { templateName: 'ubuntu-base', features: [], trust: true, yes: true });
     expect(r.written).toBe(true);
   });
+
+  it('preview does not write files', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'buckle-r-'));
+    const ctx = makeContext({ trust: true, yes: true, preview: true }, dir);
+    const r = await renderTemplate(ctx, { templateName: 'ubuntu-base', features: [], trust: true, yes: true });
+    expect(r.written).toBe(false);
+    expect(r.plan.files.some((f) => f.changed)).toBe(true);
+  });
 });

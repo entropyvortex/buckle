@@ -60,7 +60,13 @@ export function parseOrigin(input: string): ParsedOrigin {
     } else {
       url = `https://gitlab.com/${rest}.git`;
     }
-  } else if (urlPart.startsWith('https://') || urlPart.startsWith('http://') || urlPart.startsWith('git@') || urlPart.startsWith('ssh://')) {
+  } else if (urlPart.startsWith('http://')) {
+    throw new BuckleError(
+      ErrorCode.E_INSTALL_FAILED,
+      `refusing plaintext http origin: ${input}`,
+      'use https://, git@, ssh://, gh:, gl:, or file://',
+    );
+  } else if (urlPart.startsWith('https://') || urlPart.startsWith('git@') || urlPart.startsWith('ssh://')) {
     url = urlPart;
   } else if (urlPart.startsWith('file://')) {
     url = urlPart;

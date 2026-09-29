@@ -36,14 +36,20 @@ describe('dispatch — template rewrite path', () => {
   });
 
   it('handles `--version`', async () => {
-    // commander's --version exits the process by default; we run it via dispatch and expect
-    // it to not throw and to mark non-tui.
+    // commander's --version writes the package version then exits; swallow the exit.
+    const chunks: string[] = [];
+    vi.spyOn(process.stdout, 'write').mockImplementation(((s: string | Uint8Array) => {
+      chunks.push(typeof s === 'string' ? s : String(s));
+      return true;
+    }) as typeof process.stdout.write);
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((_code?: number) => {
-      // swallow
       return undefined as never;
     }) as never);
     const r = await dispatch(['node', 'buckle', '--version']);
     expect(r.tui).toBe(false);
+    const printed = chunks.join('');
+    expect(printed).toMatch(/^\d+\.\d+\.\d+/);
+    expect(printed).not.toMatch(/^0\.1\.0\b/);
     exitSpy.mockRestore();
   });
 });
