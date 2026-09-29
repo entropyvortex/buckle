@@ -6,7 +6,7 @@
   "author": "Buckle Contributors",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "bin": {
     "buckle": "bin/buckle.mjs"
