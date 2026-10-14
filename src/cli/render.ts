@@ -145,6 +145,39 @@ export async function renderTemplate(ctx: CliContext, args: RenderArgs): Promise
   return { template: resolved.merged, hash, plan: p, written, trusted };
 }
 
+export interface TrustPreflightResult {
+  /** True when rendering will not need a trust decision (builtin or already recorded). */
+  trusted: boolean;
+  /** True when a previous trust exists at a different hook surface. */
+  changed: boolean;
+  /** Human-readable executable surface, for the caller's own confirm UI. */
+  surface: string[];
+}
+
+/**
+ * Check whether rendering `templateName` would require a trust decision, without
+ * writing anything. Used by the TUI to run its own confirm step — the readline
+ * prompt in renderTemplate cannot coexist with Ink's raw-mode stdin.
+ */
+export async function trustPreflight(templateName: string, features: string[]): Promise<TrustPreflightResult> {
+  const overlay: Partial<Template> = {};
+  if (features.length > 0) {
+    overlay.features = features;
+  }
+  const resolved = await resolveTemplate(templateName, { overlay });
+  const isPureBuiltin = resolved.chainOrigins.length > 0 &&
+    resolved.chainOrigins.every((o) => o === 'builtin');
+  if (isPureBuiltin) {
+    return { trusted: true, changed: false, surface: [] };
+  }
+  const decision = await checkTrust(resolved.hash, hookSurfaceHash(resolved.merged));
+  return {
+    trusted: decision.trusted,
+    changed: decision.changed,
+    surface: formatTrustSurface(resolved.merged),
+  };
+}
+
 export function formatTrustSurface(t: Template): string[] {
   const lines: string[] = [];
   const hooks = t.lifecycle ?? {};

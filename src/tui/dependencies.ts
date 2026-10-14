@@ -1,8 +1,8 @@
 import type { CliContext, CliFlags } from '../cli/context.js';
 import { makeContext } from '../cli/context.js';
 import { Driver, type DriverOptions } from '../docker/driver.js';
-import type { RenderArgs, RenderOutcome } from '../cli/render.js';
-import { renderTemplate } from '../cli/render.js';
+import type { RenderArgs, RenderOutcome, TrustPreflightResult } from '../cli/render.js';
+import { renderTemplate, trustPreflight } from '../cli/render.js';
 import type { AutoDetectResult } from '../templates/autodetect.js';
 import { detectProject } from '../templates/autodetect.js';
 import { listCatalog } from '../templates/loader.js';
@@ -29,10 +29,15 @@ export interface TuiRenderTemplate {
   (ctx: CliContext, args: RenderArgs): Promise<RenderOutcome>;
 }
 
+export interface TuiTrustPreflight {
+  (templateName: string, features: string[]): Promise<TrustPreflightResult>;
+}
+
 export interface TuiServices {
   makeContext: TuiContextFactory;
   createDriver: DriverFactory;
   renderTemplate: TuiRenderTemplate;
+  trustPreflight?: TuiTrustPreflight;
   detectProject?: (cwd: string) => Promise<AutoDetectResult>;
   listCatalog?: typeof listCatalog;
 }
@@ -52,6 +57,7 @@ export function createDefaultTuiServices(): TuiServices {
       }),
 
     renderTemplate: (ctx, args) => renderTemplate(ctx, args),
+    trustPreflight,
     detectProject,
     listCatalog,
   };
@@ -73,4 +79,8 @@ export function getDriver(services: Partial<TuiServices> | undefined, templateNa
 
 export function getRenderTemplate(services?: Partial<TuiServices>): TuiRenderTemplate {
   return services?.renderTemplate ?? createDefaultTuiServices().renderTemplate;
+}
+
+export function getTrustPreflight(services?: Partial<TuiServices>): TuiTrustPreflight {
+  return services?.trustPreflight ?? trustPreflight;
 }
