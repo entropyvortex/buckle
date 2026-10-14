@@ -127,7 +127,11 @@ export async function renderTemplate(ctx: CliContext, args: RenderArgs): Promise
   const anyChange = p.files.some((f) => f.changed);
   if (anyChange) {
     if (ctx.flags.preview) {
-      ctx.logger.raw(renderDiff(p));
+      // JSON mode must emit nothing but the envelope (the command serializes the
+      // plan into it); the human-readable diff is for text mode only.
+      if (!ctx.flags.json) {
+        ctx.logger.raw(renderDiff(p));
+      }
       return { template: resolved.merged, hash, plan: p, written: false, trusted };
     }
     if (!args.yes && process.stdin.isTTY === true && !ctx.flags.json) {

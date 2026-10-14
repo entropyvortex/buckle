@@ -49,10 +49,8 @@ All notable changes to this project are documented here. The format is based on
 
 - `--preview` / `--dry-run` was parsed under a single `dryRun` option key, so the
   flag never took effect from the CLI and templates were written anyway. It now
-  works, and previewing touches nothing on disk (not even the per-workspace
-  state dirs, which are only created on apply).
-- `isolate: false` in `~/.config/buckle/config.yaml` is honored by CLI commands,
-  not just the TUI (flags no longer force a concrete default past the config).
+  works, touches nothing on disk (not even the per-workspace state dirs, which
+  are only created on apply), and `--preview --json` emits a clean JSON envelope.
 - `--version` reports the `package.json` version instead of a stale `0.1.0`.
 - Trust-surface hashes use a key-sorted serializer (no false “changed” from key order).
 - Unknown convenience features raise `BuckleError` (`E_TEMPLATE_INVALID`).
