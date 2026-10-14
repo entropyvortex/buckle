@@ -1,25 +1,15 @@
 name: AI Native
-description: Modern AI-native devcontainer with both Claude Code and Grok Build as first-class citizens, plus useful MCPs and tooling.
+description: Claude Code + Grok Build with common MCP servers. Agents run with permission prompts disabled; per-workspace state.
 version: 0.1.0
 
-# This is a dedicated "AI-maximal" starting point.
+# Dual-agent starting point: Claude Code and Grok Build installed side by side,
+# each with a persistent per-workspace state mount.
 #
-# Philosophy:
-# - Both major agentic coding CLIs (Claude Code + Grok Build) are treated as
-#   equal, first-class tools in the same environment.
-# - The two agents have different strengths. Having both available lets you
-#   choose the right tool for the task (or use them together via different
-#   workflows).
-# - Persistent mounts for both agents' state so your context, skills, and
-#   preferences travel with you.
+# Usage:
+#   buckle up ai-native
+#   buckle new myproject --extend ai-native   # editable copy
 #
-# Recommended usage:
-#   buckle up --feature ai-native
-#   # or
-#   buckle new myproject --extend ai-native
-#
-# This template is intentionally lightweight but opinionated about the
-# dual-agent experience. Extend it for your specific stack (node, python, etc.).
+# Extend it for your stack (node, python, …).
 
 extends: ubuntu-base
 
@@ -30,20 +20,16 @@ features:
   - mcp:filesystem
   - mcp:github
   - mcp:sequential-thinking
-  # Note: claude-code and grok are intentionally *not* listed here.
-  # ai-native declares the mounts, CLAUDE_CONFIG_DIR env, and the install + alias
-  # steps explicitly (with !replace + user: vscode) so we get full control and
-  # avoid duplicate curl | bash steps from the feature patches. The explicit
-  # lifecycle also adds the aggressive aliases for the AI agents.
+  # claude-code and grok are not listed as features: this template declares the
+  # mounts, CLAUDE_CONFIG_DIR, and install + alias steps itself (!replace +
+  # user: vscode) to avoid duplicate installer runs from the feature patches.
 
-# Environment hints for both agents
 env:
   CLAUDE_CONFIG_DIR: /home/vscode/.claude
-  # Grok Build primarily uses ~/.grok/auth.json
+  # Grok Build reads ~/.grok/auth.json
 
-# Persist state for both major AI coding agents — per workspace, not host home.
-# `buckle:workspace/*` is resolved at generate time; copying this YAML cannot
-# bind the developer's ~/.claude or ~/.grok.
+# Per-workspace agent state. `buckle:workspace/*` is resolved at generate time;
+# copying this YAML cannot bind the developer's ~/.claude or ~/.grok.
 mounts:
   - source: buckle:workspace/claude
     target: /home/vscode/.claude
@@ -56,12 +42,12 @@ customizations:
   vscode:
     extensions:
       - anthropic.claude-code
-      # Note: Grok Build primarily lives in the terminal (grok / agent commands)
-      # rather than as a VS Code extension today.
+      # Grok Build is terminal-only (grok / agent commands); no VS Code extension.
 
-# Run all AI agent setup as the vscode user (so state lands in the mounted homes).
-# We also install aggressive aliases because the entire point of this container
-# is to give the agents maximum power inside a throwaway, isolated environment.
+# Agent setup runs as the vscode user so state lands in the mounted homes.
+# The aliases disable the agents' permission prompts: this container is a
+# disposable sandbox and source is only bind-mounted in. Remove the aliases in
+# an extending template if you want prompting back (see README trust model).
 lifecycle:
   postCreate:
     - "!replace"

@@ -17,14 +17,14 @@ the latest minor of the current major and the previous major receive fixes for 6
 ## Reporting a vulnerability
 
 **Please do not open a public issue for security reports.** Instead, email
-**marcelo@ceccon.org** (or **security@buckle.dev** if that mailbox is reachable) with:
+**marcelo@ceccon.org** with:
 
 - a clear description of the issue,
 - a minimal reproducer,
 - the impact you observed, and
 - any suggested fix.
 
-You can expect:
+We aim for:
 
 - an acknowledgement within **3 business days**,
 - a remediation plan within **10 business days**,
@@ -60,10 +60,10 @@ that has been granted host access (e.g., via `dod` or bind-mounts).
 - In CI / `--json` / non-TTY contexts the prompt becomes a hard error (`E_HASH_MISMATCH`);
   you must opt in explicitly with `--trust`.
 - Built-in templates are pre-trusted. User and installed templates are not.
-- Agent config dirs (`~/.claude`, `~/.grok`) are isolated per workspace by default so
-  skills and credentials do not leak across containers. Built-in templates and the
-  `grok` feature never bind host `~/.claude` / `~/.grok`; `--share-home` is the only
-  opt-in that restores those host binds.
+- Agent config dirs (`~/.claude`, `~/.grok`, `~/.config/gh`) are isolated per workspace by
+  default so skills and credentials do not leak across containers. Built-in templates and
+  the `claude-code` / `grok` / `gh` features declare `buckle:workspace/*` sentinels, never
+  host paths; `--share-home` is the only opt-in that produces host binds.
 
 **Out of scope**: We do *not* statically analyze the body of `postCreate` commands. The trust
 boundary is your eyes — the same as `make` or `npm install`.
@@ -75,14 +75,14 @@ result in your config directory. There is no signature verification in 0.x.
 
 **Mitigations**:
 
-- The origin URL is recorded; `buckle list` shows it.
-- The origin's first 16 hex characters are part of the on-disk path, so multiple references to
-  the same repo at different refs do not collide.
+- The origin is recorded; `buckle list` shows its hash prefix next to installed templates.
+- The first 16 hex characters of the origin hash are part of the on-disk path, so multiple
+  references to the same repo at different refs do not collide.
 - We schema-validate the cloned `template.yaml` at install time, so a malformed remote fails
   fast rather than at first `up`.
 
-**Planned**: `metadata.signature` is reserved in the schema; `buckle install` will accept
-`sigstore`-signed templates in a future minor release.
+`metadata.signature` is reserved in the schema for future signature verification; nothing
+verifies it in 0.x.
 
 ### 3. Convenience features may grant the container privileged host access
 
@@ -94,9 +94,10 @@ your host. `dind` runs the container in `--privileged` mode.
 
 - The trust prompt covers any change to the `features` list, so adding `dod` to a previously
   trusted template re-prompts.
-- `buckle list` and `buckle edit` show the resolved feature list before you accept.
-- Each convenience feature is documented in the README with its concrete effect on the
-  generated `devcontainer.json`.
+- `buckle view <name>` prints the resolved devcontainer (features expanded) before you accept;
+  `buckle edit <name>` opens the template source.
+- The feature catalog (README and the wizard's feature picker) describes what each
+  convenience feature adds.
 
 You are responsible for understanding that, e.g., `dod` is functionally equivalent to handing
 the container access to your host docker daemon.

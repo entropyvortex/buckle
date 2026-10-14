@@ -10,8 +10,8 @@ export interface BuckleConfig {
   /** Wizard suggestion when autodetect cannot decide. */
   defaultTemplate?: string;
   /**
-   * When false, bind-mount host ~/.claude and ~/.grok (legacy share-home).
-   * Default true = per-workspace isolated agent state.
+   * When false, bind host ~/.claude, ~/.grok and ~/.config/gh (same as --share-home).
+   * Default true: per-workspace agent state.
    */
   isolate?: boolean;
 }

@@ -67,8 +67,8 @@ function attachGlobals(cmd: Command): Command {
     .option('--git-init', 'initialize a git repo in the workspace if there is none')
     .option('--installed-only', 'list installed (non-built-in) templates only')
     .option('--force', 'force overwrite on install')
-    // Two separate options: commander treats '--preview, --dry-run' as one option
-    // keyed `dryRun`, which silently broke `--preview`.
+    // Must be two options: commander treats '--preview, --dry-run' as a single
+    // option keyed `dryRun`, leaving opts.preview unset.
     .option('--preview', 'show what would be written without changing the filesystem')
     .option('--dry-run', 'alias for --preview')
     .option(

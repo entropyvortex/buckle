@@ -21,10 +21,10 @@ templates rather than per-repo copy-paste.
    and features are hashed with a stable serializer. Built-ins are pre-trusted.
    User/installed templates prompt interactively (or require `--trust` when
    non-TTY).
-6. **AI agent state is per-workspace by default.** Templates and features declare
-   `buckle:workspace/{claude,grok}` sentinels, never host `~/.claude` / `~/.grok`.
-   Generate-time resolution maps those to
-   `$XDG_DATA_HOME/buckle/workspaces/<slug>-<hash>/{claude,grok}` unless
+6. **AI agent state is per-workspace by default.** Templates and the
+   `claude-code` / `grok` / `gh` features declare `buckle:workspace/{claude,grok,gh}`
+   sentinels, never host paths. Generate-time resolution maps those to
+   `$XDG_DATA_HOME/buckle/workspaces/<slug>-<hash>/{claude,grok,gh}` unless
    `--share-home`. Host `~/.gitconfig` remains shared (identity, not agent state).
 
 ## Layers
@@ -59,4 +59,10 @@ util/         errors, paths (XDG), log, fs, slug, config, version
 - At most one of `image` / `build` / `compose` after merge.
 - Generated JSON is key-sorted for stable diffs.
 - Writes go through `writeTextAtomic`.
-- Isolation dirs are created at plan time so `devcontainer up` can bind them.
+- Isolation dirs are created on apply, never during plan/preview.
+- Mounts dedupe by target (later wins), so a feature and a template can declare
+  the same path.
+- Convenience features never inject `containerEnv.PATH`: `${containerEnv:…}`
+  interpolation can reach the `@devcontainers/cli` initial `docker run` probe
+  literally and break `/bin/sh` (observed on macOS arm64 + devcontainers/base).
+  Installers own PATH via symlinks and rc files instead.
