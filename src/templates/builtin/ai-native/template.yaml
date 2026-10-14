@@ -41,12 +41,14 @@ env:
   CLAUDE_CONFIG_DIR: /home/vscode/.claude
   # Grok Build primarily uses ~/.grok/auth.json
 
-# Persist state for both major AI coding agents
+# Persist state for both major AI coding agents — per workspace, not host home.
+# `buckle:workspace/*` is resolved at generate time; copying this YAML cannot
+# bind the developer's ~/.claude or ~/.grok.
 mounts:
-  - source: ${localEnv:HOME}/.claude
+  - source: buckle:workspace/claude
     target: /home/vscode/.claude
     type: bind
-  - source: ${localEnv:HOME}/.grok
+  - source: buckle:workspace/grok
     target: /home/vscode/.grok
     type: bind
 

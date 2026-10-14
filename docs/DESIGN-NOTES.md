@@ -21,11 +21,11 @@ templates rather than per-repo copy-paste.
    and features are hashed with a stable serializer. Built-ins are pre-trusted.
    User/installed templates prompt interactively (or require `--trust` when
    non-TTY).
-6. **AI agent state is per-workspace by default.** Host `~/.claude` and `~/.grok`
-   are not bind-mounted unless `--share-home`. Isolated state lives under
-   `$XDG_DATA_HOME/buckle/workspaces/<slug>-<hash>/{claude,grok}` so skills,
-   versions, and configs do not leak across containers. Host `~/.gitconfig`
-   remains shared (identity, not agent state).
+6. **AI agent state is per-workspace by default.** Templates and features declare
+   `buckle:workspace/{claude,grok}` sentinels, never host `~/.claude` / `~/.grok`.
+   Generate-time resolution maps those to
+   `$XDG_DATA_HOME/buckle/workspaces/<slug>-<hash>/{claude,grok}` unless
+   `--share-home`. Host `~/.gitconfig` remains shared (identity, not agent state).
 
 ## Layers
 

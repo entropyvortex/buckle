@@ -1,10 +1,11 @@
-import { mkdtemp, readFile, writeFile, mkdir } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
 import { applyPlan, plan, renderDiff, summarizePlan } from '../../src/generators/writer.js';
+import { workspaceStateId } from '../../src/templates/isolate.js';
 import type { Template } from '../../src/templates/schema.js';
 
 describe('writer plan/apply', () => {
@@ -26,6 +27,25 @@ describe('writer plan/apply', () => {
     await applyPlan(p);
     const content = await readFile(join(dir, '.devcontainer/devcontainer.json'), 'utf8');
     expect(content).toContain('"image": "foo:1"');
+  });
+
+  it('plan never touches the filesystem; applyPlan creates the state dirs', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'buckle-w-'));
+    const state = await mkdtemp(join(tmpdir(), 'buckle-w-state-'));
+    const prev = process.env['BUCKLE_STATE_DIR'];
+    process.env['BUCKLE_STATE_DIR'] = state;
+    try {
+      const t: Template = { version: '0.1.0', image: 'foo:1' };
+      // plan backs `--preview`: it must not create the per-workspace state dirs.
+      const p = await plan(t, { cwd: dir, projectName: 'proj' });
+      expect(await readdir(state)).toEqual([]);
+      await applyPlan(p);
+      const created = await readdir(join(state, workspaceStateId(dir)));
+      expect(created.sort()).toEqual(['claude', 'gh', 'grok']);
+    } finally {
+      if (prev === undefined) delete process.env['BUCKLE_STATE_DIR'];
+      else process.env['BUCKLE_STATE_DIR'] = prev;
+    }
   });
 
   it('detects unchanged on second plan', async () => {

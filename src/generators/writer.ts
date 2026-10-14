@@ -11,6 +11,11 @@ export interface RenderPlan {
   files: { path: string; contents: string; existed: boolean; changed: boolean }[];
   /** Non-fatal guidance surfaced to the user during render (e.g. compose + dind warnings). */
   warnings?: string[] | undefined;
+  /**
+   * Per-workspace agent state dirs referenced by the generated mounts.
+   * Created by applyPlan, never by plan — `--preview` must not touch the filesystem.
+   */
+  stateDirs?: string[] | undefined;
 }
 
 export interface RenderOptions {
@@ -32,10 +37,9 @@ export async function plan(t: Template, opts: RenderOptions): Promise<RenderPlan
   const files: RenderPlan['files'] = [];
 
   const isolate = opts.isolate !== false;
-  if (isolate) {
-    await ensureDir(isolatedMountSource(opts.cwd, 'claude'));
-    await ensureDir(isolatedMountSource(opts.cwd, 'grok'));
-  }
+  const stateDirs = isolate
+    ? (['claude', 'grok', 'gh'] as const).map((kind) => isolatedMountSource(opts.cwd, kind))
+    : undefined;
 
   const dc = buildDevcontainer(t, opts.projectName, {
     isolate,
@@ -76,7 +80,7 @@ export async function plan(t: Template, opts: RenderOptions): Promise<RenderPlan
     }
   }
 
-  return { files, warnings: warnings.length > 0 ? warnings : undefined };
+  return { files, warnings: warnings.length > 0 ? warnings : undefined, stateDirs };
 }
 
 async function classify(path: string, next: string): Promise<RenderPlan['files'][number]> {
@@ -86,6 +90,9 @@ async function classify(path: string, next: string): Promise<RenderPlan['files']
 }
 
 export async function applyPlan(p: RenderPlan): Promise<void> {
+  for (const d of p.stateDirs ?? []) {
+    await ensureDir(d);
+  }
   for (const f of p.files) {
     if (!f.changed) continue;
     await writeTextAtomic(f.path, f.contents);

@@ -9,7 +9,7 @@ import { listFeatures } from '../features/catalog.js';
 import { listCatalog } from '../templates/loader.js';
 import { loadConfigSync } from '../util/config.js';
 import { Logo } from './components/Logo.js';
-import { getContext, getDriver, getRenderTemplate, type TuiServices } from './dependencies.js';
+import { getContext, getDriver, getRenderTemplate, getTrustPreflight, type TuiServices } from './dependencies.js';
 
 interface WizardProps {
   cwd: string;
@@ -22,7 +22,7 @@ interface WizardProps {
   initialIntent?: 'up';
 }
 
-type Step = 'detect' | 'pick-template' | 'pick-features' | 'review' | 'apply' | 'docker' | 'done' | 'error';
+type Step = 'detect' | 'pick-template' | 'pick-features' | 'review' | 'trust' | 'apply' | 'docker' | 'done' | 'error';
 
 const ALL_FEATURES = listFeatures();
 
@@ -39,6 +39,8 @@ export function Wizard({ cwd, services, initialIntent }: WizardProps): React.Rea
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [doUp, setDoUp] = useState<boolean>(false);
   const [report, setReport] = useState<string[]>([]);
+  const [trustSurface, setTrustSurface] = useState<string[]>([]);
+  const [trustAccepted, setTrustAccepted] = useState<boolean>(false);
 
   // Step: detect.
   useEffect(() => {
@@ -83,6 +85,17 @@ export function Wizard({ cwd, services, initialIntent }: WizardProps): React.Rea
     }
   });
 
+  // Step: trust (non-builtin template with an unverified executable surface).
+  useInput((input, key) => {
+    if (step !== 'trust') return;
+    if (input === 'y') {
+      setTrustAccepted(true);
+      setStep('apply');
+    } else if (input === 'n' || input === 'q' || key.escape) {
+      exit();
+    }
+  });
+
   // Step: review.
   useInput((input, key) => {
     if (step !== 'review') return;
@@ -105,12 +118,24 @@ export function Wizard({ cwd, services, initialIntent }: WizardProps): React.Rea
       try {
         const origin = templates.find((t) => t.name === chosenTemplate)?.origin;
         const trustBuiltin = origin === 'builtin';
-        const ctx = getContext(services, { yes: true, trust: trustBuiltin, feature: chosenFeatures });
+        // Non-builtin templates go through buckle's own trust confirm step —
+        // renderTemplate's readline prompt cannot coexist with Ink's raw-mode stdin.
+        if (!trustBuiltin && !trustAccepted) {
+          const pre = await getTrustPreflight(services)(chosenTemplate, chosenFeatures);
+          if (cancelled) return;
+          if (!pre.trusted) {
+            setTrustSurface(pre.surface);
+            setStep('trust');
+            return;
+          }
+        }
+        const trust = trustBuiltin || trustAccepted;
+        const ctx = getContext(services, { yes: true, trust, feature: chosenFeatures });
         const render = getRenderTemplate(services);
         const out = await render(ctx, {
           templateName: chosenTemplate,
           features: chosenFeatures,
-          trust: trustBuiltin,
+          trust,
           yes: true,
         });
         if (cancelled) return;
@@ -130,7 +155,7 @@ export function Wizard({ cwd, services, initialIntent }: WizardProps): React.Rea
     return () => {
       cancelled = true;
     };
-  }, [step, chosenTemplate, chosenFeatures, doUp, exit]);
+  }, [step, chosenTemplate, chosenFeatures, doUp, exit, services, templates, trustAccepted]);
 
   // Step: docker (build & up).
   useEffect(() => {
@@ -172,6 +197,9 @@ export function Wizard({ cwd, services, initialIntent }: WizardProps): React.Rea
       )}
       {step === 'review' && (
         <Review template={chosenTemplate} features={chosenFeatures} cwd={cwd} />
+      )}
+      {step === 'trust' && (
+        <TrustConfirm template={chosenTemplate} surface={trustSurface} />
       )}
       {step === 'apply' && (
         <Box>
@@ -271,6 +299,26 @@ function PickFeatures({ items, cursor, chosen }: PickFeaturesProps): React.React
           </Text>
         );
       })}
+    </Box>
+  );
+}
+
+interface TrustConfirmProps {
+  template: string;
+  surface: string[];
+}
+
+function TrustConfirm({ template, surface }: TrustConfirmProps): React.ReactElement {
+  return (
+    <Box flexDirection="column">
+      <Text color="yellow">
+        template <Text color="cyan">{template}</Text> has an unverified executable surface
+      </Text>
+      <Text dimColor>lifecycle, mounts, runArgs, features:</Text>
+      {surface.map((line, i) => (
+        <Text key={i}>  {line}</Text>
+      ))}
+      <Text dimColor>y to trust &amp; continue · n/esc to abort</Text>
     </Box>
   );
 }

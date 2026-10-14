@@ -67,15 +67,18 @@ function attachGlobals(cmd: Command): Command {
     .option('--git-init', 'initialize a git repo in the workspace if there is none')
     .option('--installed-only', 'list installed (non-built-in) templates only')
     .option('--force', 'force overwrite on install')
-    .option('--preview, --dry-run', 'show what would be written without changing the filesystem')
+    // Two separate options: commander treats '--preview, --dry-run' as one option
+    // keyed `dryRun`, which silently broke `--preview`.
+    .option('--preview', 'show what would be written without changing the filesystem')
+    .option('--dry-run', 'alias for --preview')
     .option(
       '--isolate',
-      'keep AI agent skills/config per workspace (default). Each container gets its own ~/.claude and ~/.grok under $XDG_DATA_HOME/buckle/workspaces/',
+      'keep AI agent skills/config per workspace (default). Each container gets its own ~/.claude, ~/.grok and ~/.config/gh under $XDG_DATA_HOME/buckle/workspaces/',
     )
     .option('--no-isolate', 'alias for --share-home')
     .option(
       '--share-home',
-      'bind-mount host ~/.claude, ~/.grok, and ~/.gitconfig into the container (disables per-workspace isolation)',
+      'bind-mount host ~/.claude, ~/.grok and ~/.config/gh into the container (disables per-workspace isolation; ~/.gitconfig is always bound from the host)',
     );
 }
 
@@ -92,11 +95,13 @@ function readGlobals(cmd: Command): CliFlags {
     gitInit: Boolean(o['gitInit']),
     installedOnly: Boolean(o['installedOnly']),
     force: Boolean(o['force']),
-    preview: Boolean(o['preview']),
+    preview: Boolean(o['preview']) || Boolean(o['dryRun']),
     shareHome: Boolean(o['shareHome']),
-    // Isolation is the default. --share-home or --no-isolate opts out.
-    isolate: Boolean(o['shareHome']) ? false : o['isolate'] !== false,
   };
+  // Isolation resolution (flag → config.yaml `isolate` → default on) lives in
+  // makeContext. Only forward the flag when the user actually passed
+  // --isolate / --no-isolate, so the config file can take effect.
+  if (typeof o['isolate'] === 'boolean') out.isolate = o['isolate'];
   if (typeof o['user'] === 'string') out.user = o['user'];
   return out;
 }

@@ -119,7 +119,7 @@ $ buckle up claude-corp        # Node + Claude Code + GitHub CLI + selected MCPs
 | `--git-init` | Initialize a git repo in the workspace if there is none. |
 | `--preview`, `--dry-run` | Show what *would* be written without touching disk. |
 | `--isolate` | Default. Per-workspace `~/.claude` / `~/.grok` under `$XDG_DATA_HOME/buckle/workspaces/`. |
-| `--share-home`, `--no-isolate` | Bind-mount host `~/.claude`, `~/.grok`, and `~/.gitconfig` instead. |
+| `--share-home`, `--no-isolate` | Bind-mount host `~/.claude`, `~/.grok`, and `~/.config/gh` instead (`~/.gitconfig` is always bound from the host). |
 
 ---
 
@@ -284,12 +284,19 @@ mounts:
     type: bind
     readOnly: true
 
-  - source: "${localEnv:HOME}/.claude"
+  # Agent dirs: never ${localEnv:HOME}/.claude or ~/.grok — those leak host state.
+  # buckle:workspace/* is resolved at generate time to a per-workspace dir
+  # (or host home only with --share-home).
+  - source: buckle:workspace/claude
     target: /home/vscode/.claude
+    type: bind
+  - source: buckle:workspace/grok
+    target: /home/vscode/.grok
     type: bind
 ```
 
-- Use `${localEnv:HOME}` rather than hard-coding `/Users/you` or `/home/you`.
+- Use `${localEnv:HOME}` rather than hard-coding `/Users/you` or `/home/you` for host identity/secrets (`.aws`, `.gitconfig`).
+- Do **not** bind-mount host `~/.claude` or `~/.grok` in a template. Use `buckle:workspace/claude` and `buckle:workspace/grok`.
 - The variable must exist in your shell environment when you run `buckle up` / the wizard.
 - For secrets or tokens, prefer mounting a directory or using a short-lived `initialize` script rather than embedding them in the template.
 
@@ -313,7 +320,7 @@ buckle new myproject --extend ai-native
 
 **How buckle supports the combination:**
 
-- Separate, persistent mounts: `~/.claude` and `~/.grok`
+- Separate, persistent mounts: per-workspace `~/.claude` and `~/.grok` (not the host dirs, unless `--share-home`)
 - Both agents' official installers run cleanly in `postCreate`
 - No conflicts in configuration or PATH handling
 - The `ai-native` built-in template is specifically designed around this dual-agent setup
@@ -391,9 +398,9 @@ features:
 env:
   ANTHROPIC_LOG: warn
 mounts:
-  - source: "${localEnv:HOME}/.claude"
+  - source: buckle:workspace/claude
     target: /home/vscode/.claude
-  - source: "${localEnv:HOME}/.grok"
+  - source: buckle:workspace/grok
     target: /home/vscode/.grok
 ```
 

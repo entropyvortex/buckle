@@ -7,7 +7,7 @@ import type { ContainerInfo, Status } from '../docker/inspect.js';
 import { isDualAgentTemplate } from '../templates/ai.js';
 import { listCatalog } from '../templates/loader.js';
 import { Logo } from './components/Logo.js';
-import { getContext, getDriver, getRenderTemplate, type TuiServices } from './dependencies.js';
+import { getContext, getDriver, getRenderTemplate, getTrustPreflight, type TuiServices } from './dependencies.js';
 
 interface StatusPanelProps {
   cwd: string;
@@ -24,7 +24,7 @@ interface StatusState {
   flash?: string;
 }
 
-type Mode = 'status' | 'reconfigure';
+type Mode = 'status' | 'reconfigure' | 'trust';
 
 const KEY_HINTS = 'r rebuild · u up · s/d down · b bash · c reconfigure · q quit';
 
@@ -33,6 +33,8 @@ export function StatusPanel({ cwd, services }: StatusPanelProps): React.ReactEle
   const [state, setState] = useState<StatusState>({ status: 'absent', name: '', loading: true });
   const [mode, setMode] = useState<Mode>('status');
   const [templates, setTemplates] = useState<{ name: string; description?: string; origin: string }[]>([]);
+  const [pendingTemplate, setPendingTemplate] = useState<string>('');
+  const [trustSurface, setTrustSurface] = useState<string[]>([]);
 
   const refresh = useCallback(async () => {
     setState((s) => ({ ...s, loading: true }));
@@ -104,18 +106,31 @@ export function StatusPanel({ cwd, services }: StatusPanelProps): React.ReactEle
   }, [services]);
 
   const applyReconfigure = useCallback(
-    async (templateName: string) => {
-      setMode('status');
-      setState((s) => ({ ...s, loading: true, flash: `reconfiguring ${templateName}…` }));
+    async (templateName: string, trustAccepted = false) => {
       try {
         const origin = templates.find((t) => t.name === templateName)?.origin;
-        const trust = origin === 'builtin';
+        const trustBuiltin = origin === 'builtin';
+        // Non-builtin templates get buckle's own trust confirm — renderTemplate's
+        // readline prompt cannot coexist with Ink's raw-mode stdin.
+        if (!trustBuiltin && !trustAccepted) {
+          const pre = await getTrustPreflight(services)(templateName, []);
+          if (!pre.trusted) {
+            setPendingTemplate(templateName);
+            setTrustSurface(pre.surface);
+            setMode('trust');
+            return;
+          }
+        }
+        setMode('status');
+        setState((s) => ({ ...s, loading: true, flash: `reconfiguring ${templateName}…` }));
+        const trust = trustBuiltin || trustAccepted;
         const ctx = getContext(services, { yes: true, trust });
         const render = getRenderTemplate(services);
         await render(ctx, { templateName, features: ctx.flags.feature ?? [], trust, yes: true });
         setState((s) => ({ ...s, flash: `rewrote .devcontainer/ from ${templateName}` }));
         await refresh();
       } catch (e) {
+        setMode('status');
         setState((s) => ({ ...s, loading: false, error: (e as Error).message }));
       }
     },
@@ -123,6 +138,14 @@ export function StatusPanel({ cwd, services }: StatusPanelProps): React.ReactEle
   );
 
   useInput((input, key) => {
+    if (mode === 'trust') {
+      if (input === 'y') void applyReconfigure(pendingTemplate, true);
+      else if (input === 'n' || input === 'q' || key.escape) {
+        setMode('status');
+        setState((s) => ({ ...s, flash: `${pendingTemplate}: not trusted, nothing written` }));
+      }
+      return;
+    }
     if (mode === 'reconfigure') {
       if (input === 'q' || key.escape) setMode('status');
       return;
@@ -143,6 +166,22 @@ export function StatusPanel({ cwd, services }: StatusPanelProps): React.ReactEle
       })),
     [templates],
   );
+
+  if (mode === 'trust') {
+    return (
+      <Box flexDirection="column">
+        <Logo />
+        <Text color="yellow">
+          template <Text color="cyan">{pendingTemplate}</Text> has an unverified executable surface
+        </Text>
+        <Text dimColor>lifecycle, mounts, runArgs, features:</Text>
+        {trustSurface.map((line, i) => (
+          <Text key={i}>  {line}</Text>
+        ))}
+        <Text dimColor>y to trust &amp; continue · n/esc to cancel</Text>
+      </Box>
+    );
+  }
 
   if (mode === 'reconfigure') {
     return (

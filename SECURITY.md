@@ -61,7 +61,9 @@ that has been granted host access (e.g., via `dod` or bind-mounts).
   you must opt in explicitly with `--trust`.
 - Built-in templates are pre-trusted. User and installed templates are not.
 - Agent config dirs (`~/.claude`, `~/.grok`) are isolated per workspace by default so
-  skills and credentials do not leak across containers. `--share-home` restores host binds.
+  skills and credentials do not leak across containers. Built-in templates and the
+  `grok` feature never bind host `~/.claude` / `~/.grok`; `--share-home` is the only
+  opt-in that restores those host binds.
 
 **Out of scope**: We do *not* statically analyze the body of `postCreate` commands. The trust
 boundary is your eyes — the same as `make` or `npm install`.

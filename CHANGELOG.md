@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
-## [0.4.0] — 2026-08-31
+## [0.4.0] — 2026-10-14
 
 ### Breaking
 
@@ -17,8 +17,17 @@ All notable changes to this project are documented here. The format is based on
   `~/.config/buckle/config.yaml`) to restore the previous host-home mounts.
   Existing `.devcontainer/` files are unchanged until you re-render
   (`buckle <template> --yes` or status-panel `c`).
+- Built-in `ai-native` / `claude-corp` templates and the `grok` / `gh` features no
+  longer bind-mount host paths directly. They declare `buckle:workspace/{claude,grok,gh}`
+  sentinels; generate-time resolution maps those to per-workspace dirs (default) or
+  host home only with `--share-home`. Copying a template without the remap step
+  cannot clobber host agent state.
 - Non-interactive trust failures tell you to pass `--trust` after `buckle view`.
-  Interactive TTYs now actually prompt `[y/N]` and show the executable surface.
+  Interactive TTYs now actually prompt `[y/N]` and show the executable surface;
+  the wizard and status panel show their own in-TUI trust confirm.
+- Trust-surface hashing switched to a key-sorted serializer, so previously
+  recorded trust entries are invalidated once: the first render of an already
+  trusted custom template will ask you to re-confirm it.
 - `buckle install` refuses plaintext `http://` origins.
 - MCP convenience features no longer swallow `npm install` failures (`|| true` removed).
 
@@ -26,6 +35,9 @@ All notable changes to this project are documented here. The format is based on
 
 - `--share-home` / `--no-isolate` to opt out of isolation.
 - `~/.config/buckle/config.yaml` is loaded (`editor`, `defaultTemplate`, `isolate`).
+- `gh` feature persists `~/.config/gh` per workspace, so container rebuilds no
+  longer force a fresh `gh auth login` (GitHub revokes the oldest OAuth token
+  once a user/app/scope mints more than ten).
 - Status panel `c` reconfigure flow (pick a template, rewrite `.devcontainer/`).
 - Dual-agent callouts for `ai-native` and `claude-corp` in `buckle list`,
   `buckle doctor`, and the wizard.
@@ -35,6 +47,10 @@ All notable changes to this project are documented here. The format is based on
 
 ### Fixed
 
+- `--preview` / `--dry-run` was parsed under a single `dryRun` option key, so the
+  flag never took effect from the CLI and templates were written anyway. It now
+  works, touches nothing on disk (not even the per-workspace state dirs, which
+  are only created on apply), and `--preview --json` emits a clean JSON envelope.
 - `--version` reports the `package.json` version instead of a stale `0.1.0`.
 - Trust-surface hashes use a key-sorted serializer (no false “changed” from key order).
 - Unknown convenience features raise `BuckleError` (`E_TEMPLATE_INVALID`).

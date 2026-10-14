@@ -18,11 +18,12 @@ export interface CliFlags {
   preview?: boolean;
   /**
    * When true (the default), AI agent skills/config live in a per-workspace
-   * directory instead of the host ~/.claude and ~/.grok.
-   * `--share-home` / `--no-isolate` sets this to false.
+   * directory instead of the host ~/.claude, ~/.grok and ~/.config/gh.
+   * Left undefined when neither --isolate nor --no-isolate was passed, so
+   * config.yaml `isolate` can decide (see resolveIsolate).
    */
   isolate?: boolean;
-  /** Bind-mount host ~/.claude, ~/.grok, ~/.gitconfig. Inverse of isolate. */
+  /** Bind-mount host ~/.claude, ~/.grok, ~/.config/gh. Inverse of isolate (~/.gitconfig is always bound). */
   shareHome?: boolean;
 }
 

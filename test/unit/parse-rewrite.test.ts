@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -28,6 +29,34 @@ describe('dispatch — template rewrite path', () => {
   it('rewrites `buckle ubuntu-base` to render', async () => {
     const r = await dispatch(['node', 'buckle', 'ubuntu-base', '--trust', '--yes', '--json']);
     expect(r.tui).toBe(false);
+  });
+
+  it('`--preview` and `--dry-run` never write .devcontainer (through real flag parsing)', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'buckle-preview-'));
+    // process.chdir works here because vitest runs tests in the forks pool;
+    // a switch to the threads pool would make chdir throw.
+    const prevCwd = process.cwd();
+    process.chdir(dir);
+    const chunks: string[] = [];
+    vi.spyOn(process.stdout, 'write').mockImplementation(((s: string | Uint8Array) => {
+      chunks.push(typeof s === 'string' ? s : String(s));
+      return true;
+    }) as typeof process.stdout.write);
+    try {
+      await dispatch(['node', 'buckle', 'ubuntu-base', '--preview', '--json']);
+      expect(existsSync(join(dir, '.devcontainer'))).toBe(false);
+      // --json stdout must be a single parseable envelope — no raw diff mixed in.
+      const envelope = JSON.parse(chunks.join('')) as { ok: boolean; data: { written: boolean } };
+      expect(envelope.ok).toBe(true);
+      expect(envelope.data.written).toBe(false);
+
+      chunks.length = 0;
+      await dispatch(['node', 'buckle', 'ubuntu-base', '--dry-run', '--json']);
+      expect(existsSync(join(dir, '.devcontainer'))).toBe(false);
+      expect((JSON.parse(chunks.join('')) as { data: { written: boolean } }).data.written).toBe(false);
+    } finally {
+      process.chdir(prevCwd);
+    }
   });
 
   it('exits via subcommand `doctor` (json)', async () => {

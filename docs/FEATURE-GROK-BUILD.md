@@ -45,12 +45,14 @@ When a user specifies `--feature grok` or includes it in a template:
    - Support optional version pinning: `--feature grok:0.2.3`
 
 2. **Persistent state**:
-   - Mount `~/.grok` (bind, read/write) so that:
+   - Declare a `buckle:workspace/grok` bind (not host `~/.grok`) so generate-time
+     resolution can map it to a per-workspace dir (default) or host `~/.grok`
+     only with `--share-home`. Inside the container that is still `~/.grok`:
      - `~/.grok/auth.json` (auth tokens)
      - `~/.grok/config.toml`
      - `~/.grok/skills/`, managed config, etc.
      - Completions
-   - This is the direct equivalent of mounting `~/.claude` for Claude Code.
+   - This is the direct equivalent of the Claude Code workspace mount.
 
 3. **Environment / PATH**:
    - We deliberately do **not** inject a `containerEnv.PATH` entry.
@@ -87,7 +89,7 @@ When a user specifies `--feature grok` or includes it in a template:
     },
     mounts: [
       {
-        source: '${localEnv:HOME}/.grok',
+        source: 'buckle:workspace/grok',
         target: '/home/vscode/.grok',
         type: 'bind',
       },
@@ -108,7 +110,7 @@ When a user specifies `--feature grok` or includes it in a template:
 
 ### In Scope (MVP)
 - Add `grok` convenience feature
-- Mount `~/.grok`
+- Mount per-workspace `~/.grok` (`buckle:workspace/grok`; not host `~/.grok`)
 - Run official installer in postCreate (with optional version)
 - Update `listFeatures()`
 - Basic tests
@@ -160,7 +162,7 @@ When a user specifies `--feature grok` or includes it in a template:
 ## Success Criteria
 
 - `buckle up --feature grok` produces a working devcontainer where `grok` and `agent` commands are available after `postCreate`.
-- `~/.grok` is persisted across container rebuilds via mount.
+- Container `~/.grok` is persisted across rebuilds via a per-workspace mount (not host `~/.grok`).
 - Existing trust prompt fires (because of the lifecycle hook).
 - Documentation is clear and symmetric with `claude-code`.
 - No regression in existing tests or behavior.
