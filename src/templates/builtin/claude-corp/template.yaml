@@ -1,29 +1,15 @@
 name: Claude Corp
-description: Node + Claude Code + Grok Build + GitHub CLI + selected MCP servers. Per-workspace Claude and Grok state (not host ~/.claude / ~/.grok).
+description: Node + Claude Code + Grok Build + GitHub CLI + MCP servers. Per-workspace agent state.
 version: 0.1.0
 
-# Real-world corporate / power-user AI-native example.
+# Reference template: extends the built-in `node` template, then layers
+# Claude Code, Grok Build, GitHub CLI, git signing, and two MCP servers.
 #
-# This template demonstrates having **both** major agentic coding CLIs
-# (Claude Code and Grok Build) as true first-class citizens in the same
-# devcontainer — a pattern buckle explicitly supports and optimizes for.
-#
-# Extends the built-in `node` template, then layers:
-# - Claude Code (Anthropic)
-# - Grok Build (xAI)
-# - GitHub CLI + git signing
-# - A couple of MCP servers
-#
-# Key patterns demonstrated:
+# Patterns shown:
 # - `extends` for reuse
 # - `features` sugar (claude-code, grok, gh, git-config, mcp:*)
-# - Mounting two separate AI tool config directories (per-workspace, not host home)
-# - Environment variables for tool configuration
-# - buckle:workspace/* sentinels resolved at generate time (never host ~/.claude / ~/.grok)
-#
-# Having both Claude Code and Grok Build together is a deliberately
-# first-class experience. The tools compose cleanly with separate
-# config directories and independent install steps.
+# - buckle:workspace/* mount sentinels, resolved at generate time
+#   (never host ~/.claude / ~/.grok)
 
 extends: node
 
@@ -38,9 +24,9 @@ features:
 env:
   CLAUDE_CONFIG_DIR: /home/vscode/.claude
 
-# Persist AI agent state per workspace. `buckle:workspace/*` is not a host path;
-# generate-time resolution maps it to $XDG_DATA_HOME/buckle/workspaces/<id>/{claude,grok}
-# (default) or host ~/.claude / ~/.grok only with --share-home.
+# Per-workspace agent state: resolved to
+# $XDG_DATA_HOME/buckle/workspaces/<id>/{claude,grok} (default) or host
+# ~/.claude / ~/.grok with --share-home.
 mounts:
   - source: buckle:workspace/claude
     target: /home/vscode/.claude

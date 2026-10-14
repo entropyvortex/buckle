@@ -13,7 +13,7 @@ hand-author `.devcontainer/devcontainer.json` → maybe a Dockerfile → maybe a
 templates** so the same config travels with *you*, not with each repo.
 
 ```bash
-$ buckle up claude-corp1     # build & up & bash in
+$ buckle up claude-corp      # build & up & bash in
 $ buckle                     # land in any folder; TUI does the right thing
 $ buckle node --feature dod  # render Node template + docker-outside-of-docker
 $ buckle down                # tear it down
@@ -76,10 +76,10 @@ $ buckle node --yes --trust    # render the built-in `node` template
 $ buckle up                    # build & shell in
 ```
 
-For the headline use case:
+With AI agents:
 
 ```bash
-$ buckle up claude-corp        # Node + Claude Code + GitHub CLI + selected MCPs
+$ buckle up claude-corp        # Node + Claude Code + Grok Build + GitHub CLI + MCP servers
 ```
 
 ---
@@ -98,6 +98,7 @@ $ buckle up claude-corp        # Node + Claude Code + GitHub CLI + selected MCPs
 | `buckle logs [-f] [--tail N]` | Stream container logs. |
 | `buckle status` | Show container state and metadata. |
 | `buckle list [--installed-only]` | List built-in / user / installed templates. |
+| `buckle view <template>` | Print the resolved devcontainer (features expanded) without writing. |
 | `buckle edit <template>` | Open user template in `$EDITOR`. |
 | `buckle new <name> [--extend <p>]` | Scaffold a new user template. |
 | `buckle install <origin>` | Install a template from `gh:user/repo`, `gl:user/repo`, https git URL, or `file://`. |
@@ -118,7 +119,7 @@ $ buckle up claude-corp        # Node + Claude Code + GitHub CLI + selected MCPs
 | `--detach` | Don't attach a shell after `up`/`rebuild`. |
 | `--git-init` | Initialize a git repo in the workspace if there is none. |
 | `--preview`, `--dry-run` | Show what *would* be written without touching disk. |
-| `--isolate` | Default. Per-workspace `~/.claude` / `~/.grok` under `$XDG_DATA_HOME/buckle/workspaces/`. |
+| `--isolate` | Default. Per-workspace `~/.claude` / `~/.grok` / `~/.config/gh` under `$XDG_DATA_HOME/buckle/workspaces/`. |
 | `--share-home`, `--no-isolate` | Bind-mount host `~/.claude`, `~/.grok`, and `~/.config/gh` instead (`~/.gitconfig` is always bound from the host). |
 
 ---
@@ -302,30 +303,15 @@ mounts:
 
 #### Using both Claude Code and Grok Build
 
-Buckle treats having **both** major agentic coding agents in the same devcontainer as a first-class experience.
+Both agents install side by side; each gets its own per-workspace state mount
+(`~/.claude`, `~/.grok`) and independent `postCreate` install step.
 
 ```bash
-# Quick start with both agents
-buckle up --feature claude-code --feature grok
-
-# Or use the dedicated template
-buckle new myproject --extend ai-native
+buckle up --feature claude-code --feature grok   # add both to any template
+buckle up ai-native                              # or use the dedicated template
 ```
 
-**Why run both?**
-
-- They have different strengths and personalities.
-- You can route different tasks to the agent that performs best on that workload.
-- Their context windows, tool use, and reasoning styles are complementary.
-
-**How buckle supports the combination:**
-
-- Separate, persistent mounts: per-workspace `~/.claude` and `~/.grok` (not the host dirs, unless `--share-home`)
-- Both agents' official installers run cleanly in `postCreate`
-- No conflicts in configuration or PATH handling
-- The `ai-native` built-in template is specifically designed around this dual-agent setup
-
-You can also mix and match freely in your own templates:
+In your own templates:
 
 ```yaml
 features:
@@ -335,30 +321,22 @@ features:
   - mcp:github
 ```
 
-See the `ai-native` and `claude-corp` built-in templates for realistic examples of this pattern in action.
+See the `ai-native` and `claude-corp` built-in templates for worked examples.
 
-**Important: The safety model and philosophy of the `ai-native` template**
-
-This template is **deliberately** built to give Claude Code and Grok Build **maximum, unrestricted power** inside the container:
+**The `ai-native` template disables agent permission prompts.** It installs:
 
 ```bash
 alias claude='claude --dangerously-skip-permissions'
 alias grok='grok --yolo'
 ```
 
-**This is not a bug or oversight.** It is the *entire point* of this template.
-
-### Why this exists
-
-- The container is a **throwaway, high-trust sandbox**.
-- Your real source code lives on the host and is only bind-mounted in.
-- If something goes wrong, you can `rm -rf .devcontainer && buckle up ai-native --rebuild` and start fresh in seconds.
-- The agents run as the `vscode` user (with full write access to the mounted workspace).
-- The dangerous flags (`--dangerously-skip-permissions` / `--yolo`) are enabled by default because the whole purpose of this environment is to let the agents move fast without asking for confirmation on every file edit, terminal command, or package install.
-
-If you do **not** want agents to have this level of autonomy, do not use the `ai-native` template (or extend it and remove the aliases).
-
-This design is intentional and documented. The container is not meant to be a "safe" daily driver for your host machine — it is a disposable, high-agency environment for AI coding agents.
+The container is treated as a disposable sandbox: source code is bind-mounted
+from the host, agent state is per-workspace, and `buckle up ai-native --rebuild`
+recreates the environment from scratch. The aliases exist so agents can edit
+files, run commands, and install packages without per-action confirmation. If
+you want the agents' own permission prompts, extend `ai-native` and remove the
+aliases (`!replace` the `postCreate` list), or use `claude-corp`, which does not
+set them.
 
 #### Working with compose (multi-service)
 
@@ -392,7 +370,7 @@ name: Claude Corp 1
 extends: my-corp-base          # your internal base
 features:
   - claude-code
-  - grok                       # Both Claude Code and Grok Build as first-class citizens
+  - grok
   - mcp:filesystem
   - mcp:github
 env:
@@ -404,9 +382,7 @@ mounts:
     target: /home/vscode/.grok
 ```
 
-Having **both** Claude Code and Grok Build in the same devcontainer is explicitly a first-class, well-supported experience in buckle. The two tools compose cleanly (separate config directories, separate postCreate install steps).
-
-This pattern lets you keep company policy in one place while individual teams or roles add their own layers.
+This pattern keeps company policy in one place while individual teams or roles add their own layers.
 
 ### Built-in templates
 
@@ -420,9 +396,9 @@ This pattern lets you keep company policy in one place while individual teams or
 | `bun` | Bun runtime on Debian. |
 | `deno` | Deno runtime, secure by default. |
 | `polyglot` | Node + Python + Go on a Debian universal base. |
-| `claude-corp` | Node + Claude Code + GitHub CLI + selected MCPs (good real-world reference). |
+| `claude-corp` | Node + Claude Code + Grok Build + GitHub CLI + MCP servers. Reference template. |
 | `compose-demo` | Minimal compose-based multi-service starter (app + sidecar pattern). |
-| `ai-native` | **First-class dual-agent setup**: Claude Code + Grok Build together, plus common MCPs and tooling. The recommended starting point when you want both major AI coding agents available. |
+| `ai-native` | Claude Code + Grok Build with common MCP servers. Agents run with permission prompts disabled (see trust model). |
 
 Run `buckle list` to see the live catalog (built-in + user + installed).
 
@@ -442,7 +418,7 @@ Installed templates land under
 
 ---
 
-## The 10× developer flow
+## Daily flow
 
 ```bash
 # Land in a brand-new project, no devcontainer.
@@ -540,9 +516,9 @@ You can:
 
 Built-in templates are pre-trusted. User and installed templates are not.
 
-`buckle` does no network access during template resolution. `buckle install` does network
-clones via `git` (HTTPS only; plaintext `http://` is rejected). `buckle doctor` is the only
-command that probes outside the workspace.
+`buckle` does no network access during template resolution. `buckle install` clones via
+`git` over `https://`, `ssh://`, or `git@` (plaintext `http://` is rejected). `buckle doctor`
+is the only command that probes outside the workspace.
 
 See [SECURITY.md](SECURITY.md) for the full threat model.
 
@@ -554,6 +530,7 @@ Agent skills, versions, and config are **per workspace**, not shared from the ho
 | --- | --- | --- |
 | `/home/vscode/.claude` | `$XDG_DATA_HOME/buckle/workspaces/<slug>-<hash>/claude` | `${localEnv:HOME}/.claude` |
 | `/home/vscode/.grok` | `$XDG_DATA_HOME/buckle/workspaces/<slug>-<hash>/grok` | `${localEnv:HOME}/.grok` |
+| `/home/vscode/.config/gh` | `$XDG_DATA_HOME/buckle/workspaces/<slug>-<hash>/gh` | `${localEnv:HOME}/.config/gh` |
 | `/home/vscode/.gitconfig` | host `~/.gitconfig` (identity, always) | host `~/.gitconfig` |
 
 Re-render an existing project to pick up isolation:
@@ -600,7 +577,7 @@ Per-user file at `~/.config/buckle/config.yaml` (optional):
 ```yaml
 editor: code              # falls back to $VISUAL → $EDITOR → vi
 defaultTemplate: node     # used by the wizard if autodetect can't decide
-isolate: true             # default; set false to share host ~/.claude and ~/.grok
+isolate: true             # default; false = share host ~/.claude, ~/.grok, ~/.config/gh
 ```
 
 Environment variables:
@@ -622,11 +599,11 @@ Run the full suite:
 
 ```bash
 npm test
-npm run test:coverage   # coverage thresholds: 90% lines/statements/functions, 80% branches
+npm run test:coverage   # thresholds: 90% lines/functions, 89% statements, 80% branches
 ```
 
-Coverage excludes the docker-subprocess plumbing layer and the TUI render layer — those are
-exercised by integration runs against a real docker daemon (`make integration` in CI).
+The docker-subprocess layer and the TUI render layer are excluded from coverage and are not
+exercised in CI; they require a real docker daemon / TTY.
 
 ---
 
@@ -681,8 +658,8 @@ We follow semver:
 
 ## Contributing
 
-PRs welcome. The [4-round design consensus](docs/DESIGN-NOTES.md) is documented; if you'd
-change the spec, please reference it.
+PRs welcome. The design constraints are documented in [docs/DESIGN-NOTES.md](docs/DESIGN-NOTES.md);
+if you'd change the spec, please reference them.
 
 To work on buckle locally:
 
