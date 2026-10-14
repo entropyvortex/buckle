@@ -9,6 +9,9 @@ export default defineConfig({
     include: ['test/**/*.test.{ts,tsx}'],
     env: {
       BUCKLE_STATE_DIR: join(tmpdir(), 'buckle-test-state'),
+      // makeContext reads ~/.config/buckle/config.yaml; keep tests hermetic from
+      // whatever the developer running them has configured.
+      XDG_CONFIG_HOME: join(tmpdir(), 'buckle-test-config'),
     },
     coverage: {
       provider: 'v8',

@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -28,6 +29,20 @@ describe('dispatch — template rewrite path', () => {
   it('rewrites `buckle ubuntu-base` to render', async () => {
     const r = await dispatch(['node', 'buckle', 'ubuntu-base', '--trust', '--yes', '--json']);
     expect(r.tui).toBe(false);
+  });
+
+  it('`--preview` and `--dry-run` never write .devcontainer (through real flag parsing)', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'buckle-preview-'));
+    const prevCwd = process.cwd();
+    process.chdir(dir);
+    try {
+      await dispatch(['node', 'buckle', 'ubuntu-base', '--preview', '--json']);
+      expect(existsSync(join(dir, '.devcontainer'))).toBe(false);
+      await dispatch(['node', 'buckle', 'ubuntu-base', '--dry-run', '--json']);
+      expect(existsSync(join(dir, '.devcontainer'))).toBe(false);
+    } finally {
+      process.chdir(prevCwd);
+    }
   });
 
   it('exits via subcommand `doctor` (json)', async () => {
