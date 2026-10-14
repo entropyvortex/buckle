@@ -1,17 +1,17 @@
-# Buckle Patterns & Deep Examples
+# Buckle patterns
 
-This document contains longer-form, copy-paste-ready patterns that go beyond the quick reference in the main README.
+Longer-form patterns beyond the quick reference in the README.
 
-## Lifecycle Hook Ordering (Full Mental Model)
+## Lifecycle hook ordering
 
-The devcontainer spec defines a very specific sequence. Buckle simply passes these through.
+The devcontainer spec defines the sequence; buckle passes hooks through unchanged.
 
 Use this table when deciding where to put work:
 
 - `initialize`: Runs on the **host**, before any container exists. Use for: checking prerequisites, fetching secrets into the environment, very early validation. Keep it fast and idempotent.
 - `onCreate`: Runs once when the container is first created. Heavy one-time work (large tool installs, building base images inside the container).
 - `updateContent`: Runs on content refresh (git pull in certain flows). Place `npm ci`, `go mod download`, `pip install -r requirements.txt` here.
-- `postCreate`: The sweet spot for most teams. Runs after code is present. `corepack enable`, global CLIs, database setup, `pnpm install`.
+- `postCreate`: The most common location. Runs after code is present. `corepack enable`, global CLIs, database setup, `pnpm install`.
 - `postStart`: Every container start. Lightweight daemons or watchers.
 - `postAttach`: Every shell attach / VS Code attach. Greeting messages, `git status`, version checks.
 
@@ -25,7 +25,7 @@ lifecycle:
     - ./scripts/my-corp-setup.sh
 ```
 
-## Variable Expansion Reality Check
+## Variable expansion
 
 `${localEnv:HOME}` and friends are expanded by the `@devcontainers/cli` and VS Code, **not** by your shell at `buckle` invocation time.
 
@@ -42,10 +42,11 @@ mounts:
     target: /home/vscode/.ssh
     type: bind
     readOnly: true
-  - source: "${localEnv:HOME}/.config/gh"
-    target: /home/vscode/.config/gh
-    type: bind
 ```
+
+`~/.config/gh` is already persisted by the `gh` feature. If you mount it yourself,
+declare `buckle:workspace/gh` as the source — a host-home source targeting an agent
+config dir is remapped to the per-workspace dir when isolation is on.
 
 ## Compose + Real Multi-Service (Expanded from compose-demo)
 
@@ -100,10 +101,9 @@ Choose `compose` when:
 - You want to model production topology locally.
 - You are comfortable owning more of the compose file.
 
-Choose single `image` or `build` (the default happy path) when:
+Choose single `image` or `build` (the default) when:
 - One primary development container is sufficient.
-- You want maximum leverage from Buckle's convenience features and the official devcontainer ecosystem.
-- You value the simplest possible mental model.
+- You want convenience features and the devcontainer ecosystem to apply directly.
 
 The guardrails in buckle will warn you when you combine `compose` with `dind`/`dod` because those features have container-scoped side effects.
 
@@ -119,9 +119,3 @@ The trust prompt only cares about the "executable surface":
 Changing non-executable things (env vars, forwardPorts, name) will **not** re-trigger trust.
 
 This is intentional and documented in SECURITY.md.
-
----
-
-**Last meaningful review of this document**: During the v0.2 Roast Elimination hardening pass.
-
-Contributions that improve these patterns are extremely high value.

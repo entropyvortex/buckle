@@ -8,13 +8,8 @@ import { detectProject } from '../templates/autodetect.js';
 import { listCatalog } from '../templates/loader.js';
 
 /**
- * Lightweight dependency bag for the TUI components.
- *
- * Goal: remove the previous smell where Wizard and StatusPanel directly called
- * makeContext({}) and new Driver(...) inside effects and callbacks.
- *
- * This is deliberately minimal — no full DI container, just the exact collaborators
- * the TUI needs. Mirrors the existing `makeContext` factory pattern used everywhere else.
+ * Dependency bag for the TUI components: the exact collaborators Wizard and
+ * StatusPanel need, overridable in tests. Not a general DI container.
  */
 
 export interface TuiContextFactory {

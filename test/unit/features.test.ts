@@ -143,6 +143,25 @@ describe('applyFeatures', () => {
     expect(out.mounts?.some((m) => m.source.includes('${localEnv:HOME}/.grok'))).toBe(false);
   });
 
+  it('claude-code feature declares a workspace claude mount', () => {
+    const t: Template = {
+      version: '0.1.0',
+      image: 'foo:1',
+      features: ['claude-code'],
+    };
+    const out = applyFeatures(t);
+    expect(out.lifecycle?.postCreate?.[0]).toContain('https://claude.ai/install.sh');
+    expect(out.env?.['CLAUDE_CONFIG_DIR']).toBe('/home/vscode/.claude');
+    expect(out.mounts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: 'buckle:workspace/claude',
+          target: '/home/vscode/.claude',
+        }),
+      ])
+    );
+  });
+
   it('grok feature supports version pinning', () => {
     const t: Template = {
       version: '0.1.0',

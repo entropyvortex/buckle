@@ -17,11 +17,11 @@ All notable changes to this project are documented here. The format is based on
   `~/.config/buckle/config.yaml`) to restore the previous host-home mounts.
   Existing `.devcontainer/` files are unchanged until you re-render
   (`buckle <template> --yes` or status-panel `c`).
-- Built-in `ai-native` / `claude-corp` templates and the `grok` / `gh` features no
-  longer bind-mount host paths directly. They declare `buckle:workspace/{claude,grok,gh}`
-  sentinels; generate-time resolution maps those to per-workspace dirs (default) or
-  host home only with `--share-home`. Copying a template without the remap step
-  cannot clobber host agent state.
+- Built-in `ai-native` / `claude-corp` templates and the `claude-code` / `grok` / `gh`
+  features no longer bind-mount host paths directly. They declare
+  `buckle:workspace/{claude,grok,gh}` sentinels; generate-time resolution maps those to
+  per-workspace dirs (default) or host home only with `--share-home`. Copying a template
+  without the remap step cannot clobber host agent state.
 - Non-interactive trust failures tell you to pass `--trust` after `buckle view`.
   Interactive TTYs now actually prompt `[y/N]` and show the executable surface;
   the wizard and status panel show their own in-TUI trust confirm.
@@ -38,12 +38,15 @@ All notable changes to this project are documented here. The format is based on
 - `gh` feature persists `~/.config/gh` per workspace, so container rebuilds no
   longer force a fresh `gh auth login` (GitHub revokes the oldest OAuth token
   once a user/app/scope mints more than ten).
+- `claude-code` feature persists `~/.claude` per workspace (it was install-only;
+  only templates persisted Claude state). Duplicate mounts dedupe by target.
 - Status panel `c` reconfigure flow (pick a template, rewrite `.devcontainer/`).
 - Dual-agent callouts for `ai-native` and `claude-corp` in `buckle list`,
   `buckle doctor`, and the wizard.
 - Empty-directory autodetect suggests `ai-native` first.
 - Interactive lifecycle trust prompt for user/installed templates.
-- `docs/DESIGN-NOTES.md`, `MAINTAINERS.md`.
+- `docs/DESIGN-NOTES.md`, `MAINTAINERS.md`. `docs/FEATURE-GROK-BUILD.md` removed —
+  the feature shipped; its PATH constraint lives in DESIGN-NOTES.
 
 ### Fixed
 

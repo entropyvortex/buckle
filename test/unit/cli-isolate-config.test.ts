@@ -8,10 +8,10 @@ import { dispatch } from '../../src/cli/parse.js';
 import * as paths from '../../src/util/paths.js';
 
 /**
- * End-to-end CLI resolution of the isolate setting:
- * flag (--isolate / --no-isolate / --share-home) → config.yaml `isolate` → default on.
- * Guards the regression where readGlobals always forwarded a concrete boolean,
- * making `isolate: false` in config.yaml dead on every CLI path.
+ * End-to-end CLI resolution of the isolate setting, through real flag parsing:
+ * --isolate / --no-isolate / --share-home → config.yaml `isolate` → default on.
+ * readGlobals must leave `isolate` unset when no flag was passed, or the
+ * config.yaml value can never apply.
  */
 
 let tmp: string;

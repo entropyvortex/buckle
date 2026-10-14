@@ -22,7 +22,7 @@ node bin/buckle.mjs --help
 ## Project Philosophy
 
 - **Simplicity first**: The entire value of buckle is reducing cognitive load. If a feature adds more concepts than it removes, it doesn't belong.
-- **AI agents are first-class users**: Many design decisions (trust model, explicit aliases, `--yolo` encouragement in templates) exist because people use this tool with Claude Code and Grok Build.
+- **AI agents are primary users**: Several design decisions (the trust model, per-workspace agent state, the `ai-native` template's permission-prompt-disabling aliases) exist because people run Claude Code and Grok Build inside these containers.
 - **Built-ins are opinionated**: The templates and features that ship with buckle reflect strong opinions. It's okay if they don't suit everyone.
 
 ## Code Style & Conventions
@@ -36,7 +36,7 @@ node bin/buckle.mjs --help
 ## Testing
 
 - **Coverage requirements** (enforced in CI):
-  - 90% lines / statements / functions
+  - 90% lines / functions, 89% statements
   - 80% branches
 - Docker-dependent code lives in `test/integration/` and is allowed lower coverage.
 - The TUI (`src/tui/`) is also excluded from strict coverage.

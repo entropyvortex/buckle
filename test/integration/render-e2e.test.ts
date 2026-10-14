@@ -57,5 +57,7 @@ describe('e2e: render node template', () => {
     expect(dc).not.toContain('buckle:workspace/');
     expect(dc).toContain('target=/home/vscode/.claude,type=bind');
     expect(dc).toContain('target=/home/vscode/.grok,type=bind');
+    // Feature + template can both declare the mount; dedup by target keeps one.
+    expect(dc.match(/target=\/home\/vscode\/\.claude/g)).toHaveLength(1);
   });
 });

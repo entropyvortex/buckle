@@ -98,16 +98,21 @@ const CATALOG: Record<string, FeatureFn> = {
     env: {
       CLAUDE_CONFIG_DIR: '/home/vscode/.claude',
     },
+    mounts: [
+      {
+        source: WORKSPACE_AI_SOURCE.claude,
+        target: '/home/vscode/.claude',
+        type: 'bind',
+      },
+    ],
   }),
 
-  // Grok Build (xAI CLI / agentic coding TUI): use the official installer.
-  // https://x.ai/cli
-  // Declares a workspace grok mount (sentinel, not host ~/.grok). Generate-time
-  // resolution maps it to a per-workspace dir by default, or host ~/.grok with --share-home.
-  // Supports optional version pinning: --feature grok:0.2.3
+  // Grok Build (xAI CLI): official installer, https://x.ai/cli.
+  // Declares a workspace grok mount (sentinel, not host ~/.grok); resolved at
+  // generate time to a per-workspace dir, or host ~/.grok with --share-home.
+  // Optional version pinning: --feature grok:0.2.3
   grok: makeGrokFeature,
 
-  // Alias for clarity / marketing
   'grok-build': makeGrokFeature,
 };
 
@@ -214,10 +219,10 @@ export function listFeatures(): { name: string; description: string }[] {
   return [
     { name: 'dod', description: 'Docker outside docker (mount host socket)' },
     { name: 'dind', description: 'Docker in docker (privileged dockerd)' },
-    { name: 'gh', description: 'GitHub CLI' },
+    { name: 'gh', description: 'GitHub CLI; login persists per workspace' },
     { name: 'git-config', description: 'Bind-mount host ~/.gitconfig read-only' },
-    { name: 'claude-code', description: 'Install Claude Code CLI; isolated per workspace by default (pairs with grok)' },
-    { name: 'grok', description: 'Install Grok Build (xAI); isolated per workspace by default (pairs with claude-code)' },
+    { name: 'claude-code', description: 'Claude Code CLI; per-workspace ~/.claude' },
+    { name: 'grok', description: 'Grok Build (xAI); per-workspace ~/.grok' },
     { name: 'grok-build', description: 'Alias for grok' },
     { name: 'mcp:<name>', description: 'Install an MCP server (filesystem, github, …)' },
     { name: 'aws', description: 'AWS CLI v2' },
