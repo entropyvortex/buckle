@@ -17,8 +17,8 @@ export interface RenderArgs {
   templateName: string;
   /** Apply CLI feature overlays. */
   features: string[];
-  /** Skip trust prompt — used for `--trust` and the in-TUI confirm.
-   *  For pure built-in templates this is no longer required (they are auto-trusted). */
+  /** Skip the trust prompt — used for `--trust` and the in-TUI confirm.
+   *  Built-in templates are pre-trusted and ignore this. */
   trust?: boolean;
   /** Skip diff confirmation — used for `--yes` and the in-TUI confirm. */
   yes?: boolean;
