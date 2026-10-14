@@ -12,7 +12,6 @@ import {
   isolateHomeMounts,
   isolatedMountSource,
   resolveAiHomeMounts,
-  stripHomeMounts,
   WORKSPACE_AI_SOURCE,
   workspaceStateId,
   workspaceStateRoot,
@@ -60,32 +59,47 @@ describe('isolateHomeMounts', () => {
   it('returns the template unchanged when there are no mounts', () => {
     const t: Template = { version: '0.1.0', image: 'foo:1' };
     expect(isolateHomeMounts(t, '/tmp/x')).toBe(t);
-    expect(stripHomeMounts(t)).toBe(t);
   });
 
-  it('stripHomeMounts drops AI and gitconfig binds and leaves others', () => {
+  it('remaps a custom source bound onto an agent dir in isolate mode only', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'buckle-iso-custom-'));
+    process.env['BUCKLE_STATE_DIR'] = await mkdtemp(join(tmpdir(), 'buckle-state-'));
+    const t: Template = {
+      version: '0.1.0',
+      image: 'foo:1',
+      mounts: [{ source: '/mnt/team/.claude', target: '/home/vscode/.claude', type: 'bind' }],
+    };
+    // Isolation guarantees nothing custom leaks into the workspace agent dirs.
+    const isolated = resolveAiHomeMounts(t, cwd, true);
+    expect(isolated.mounts?.[0]?.source).toBe(isolatedMountSource(cwd, 'claude'));
+    // Share-home respects the deliberate custom bind.
+    const shared = resolveAiHomeMounts(t, cwd, false);
+    expect(shared.mounts?.[0]?.source).toBe('/mnt/team/.claude');
+  });
+
+  it('share-home rewrites buckle-managed per-workspace sources back to host home', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'buckle-iso-back-'));
+    process.env['BUCKLE_STATE_DIR'] = await mkdtemp(join(tmpdir(), 'buckle-state-'));
     const t: Template = {
       version: '0.1.0',
       image: 'foo:1',
       mounts: [
-        { source: '${localEnv:HOME}/.claude', target: '/home/vscode/.claude', type: 'bind' },
-        { source: '${localEnv:HOME}/.gitconfig', target: '/home/vscode/.gitconfig', type: 'bind' },
-        { source: '/var/run/docker.sock', target: '/var/run/docker.sock', type: 'bind' },
+        { source: isolatedMountSource(cwd, 'claude'), target: '/home/vscode/.claude', type: 'bind' },
       ],
     };
-    const out = stripHomeMounts(t);
-    expect(out.mounts).toEqual([
-      { source: '/var/run/docker.sock', target: '/var/run/docker.sock', type: 'bind' },
-    ]);
+    const shared = resolveAiHomeMounts(t, cwd, false);
+    expect(shared.mounts?.[0]?.source).toBe(HOST_AI_SOURCE.claude);
   });
 
-  it('stripHomeMounts is a no-op when nothing matches', () => {
+  it('does not remap unrelated paths that merely end in .claude', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'buckle-iso-unrel-'));
     const t: Template = {
       version: '0.1.0',
       image: 'foo:1',
-      mounts: [{ source: '/a', target: '/b', type: 'bind' }],
+      mounts: [{ source: '/srv/data/.claude', target: '/opt/data', type: 'bind' }],
     };
-    expect(stripHomeMounts(t)).toBe(t);
+    expect(resolveAiHomeMounts(t, cwd, true)).toBe(t);
+    expect(resolveAiHomeMounts(t, cwd, false)).toBe(t);
   });
 
   it('workspaceStateRoot falls back to XDG data home', () => {

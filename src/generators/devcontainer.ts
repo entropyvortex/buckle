@@ -3,7 +3,7 @@ import { resolveAiHomeMounts } from '../templates/isolate.js';
 import type { LifecycleStep, Template } from '../templates/schema.js';
 import { REPLACE_SENTINEL } from '../templates/resolver.js';
 
-export { isolateHomeMounts, resolveAiHomeMounts, stripHomeMounts } from '../templates/isolate.js';
+export { isolateHomeMounts, resolveAiHomeMounts } from '../templates/isolate.js';
 
 /**
  * Devcontainer.json shape we emit. We use a permissive type — the spec keeps growing — but
