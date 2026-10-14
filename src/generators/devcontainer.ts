@@ -1,9 +1,9 @@
 import { applyFeatures } from '../features/compile.js';
-import { isolateHomeMounts } from '../templates/isolate.js';
+import { resolveAiHomeMounts } from '../templates/isolate.js';
 import type { LifecycleStep, Template } from '../templates/schema.js';
 import { REPLACE_SENTINEL } from '../templates/resolver.js';
 
-export { isolateHomeMounts, stripHomeMounts } from '../templates/isolate.js';
+export { isolateHomeMounts, resolveAiHomeMounts, stripHomeMounts } from '../templates/isolate.js';
 
 /**
  * Devcontainer.json shape we emit. We use a permissive type — the spec keeps growing — but
@@ -80,9 +80,9 @@ function ports(t: Template): (number | { port: number })[] | undefined {
 
 export interface BuildDevcontainerOptions {
   /**
-   * When true (default), remap ~/.claude and ~/.grok bind-mounts onto a
-   * per-workspace directory under XDG_DATA_HOME so skills/config do not leak
-   * across containers. Pass false (`--share-home`) to keep host home mounts.
+   * When true (default), resolve AI home mounts onto a per-workspace directory
+   * under XDG_DATA_HOME so skills/config do not leak across containers.
+   * Pass false (`--share-home`) to bind host ~/.claude and ~/.grok instead.
    */
   isolate?: boolean;
   /** Workspace path used to compute the isolated state directory. */
@@ -100,9 +100,9 @@ export function buildDevcontainer(
   // Apply convenience-features → nativeFeatures + hooks/mounts/env.
   let t = applyFeatures(input);
   const isolate = opts.isolate !== false;
-  if (isolate) {
-    t = isolateHomeMounts(t, opts.cwd ?? process.cwd());
-  }
+  // Always resolve AI home sentinels / leftover host binds. Isolate (default)
+  // writes per-workspace dirs; --share-home is the only path that emits host ~/.claude/~/.grok.
+  t = resolveAiHomeMounts(t, opts.cwd ?? process.cwd(), isolate);
   const dc: Devcontainer = {
     name: t.name ?? projectName,
   };

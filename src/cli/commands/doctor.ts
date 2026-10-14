@@ -100,7 +100,7 @@ export async function runDoctor(ctx: CliContext): Promise<number> {
     name: 'ai.isolate',
     status: 'pass',
     message: isolateOn
-      ? `per-workspace agent state (${workspaceStateDir(ctx.cwd)}; --share-home to bind host ~/.claude and ~/.grok)`
+      ? `per-workspace agent state (${workspaceStateDir(ctx.cwd)}; --share-home to bind host ~/.claude, ~/.grok and ~/.config/gh)`
       : 'sharing host ~/.claude and ~/.grok (--share-home)',
   });
 

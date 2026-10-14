@@ -1,3 +1,4 @@
+import { WORKSPACE_AI_SOURCE } from '../templates/isolate.js';
 import { deepMerge } from '../templates/resolver.js';
 import type { Template } from '../templates/schema.js';
 import { BuckleError, ErrorCode } from '../util/errors.js';
@@ -43,8 +44,18 @@ const CATALOG: Record<string, FeatureFn> = {
       runArgs: ['--privileged'],
     }),
 
-  // GitHub CLI feature.
-  gh: () => NATIVE('ghcr.io/devcontainers/features/github-cli:1'),
+  // GitHub CLI feature. ~/.config/gh is a workspace sentinel so the login survives rebuilds
+  // (per-workspace by default, host ~/.config/gh with --share-home).
+  gh: () =>
+    deepMergePatch(NATIVE('ghcr.io/devcontainers/features/github-cli:1'), {
+      mounts: [
+        {
+          source: WORKSPACE_AI_SOURCE.gh,
+          target: '/home/vscode/.config/gh',
+          type: 'bind',
+        },
+      ],
+    }),
 
   // Bind-mount the host gitconfig read-only into the container so signing / user.email work.
   'git-config': () => ({
@@ -91,7 +102,8 @@ const CATALOG: Record<string, FeatureFn> = {
 
   // Grok Build (xAI CLI / agentic coding TUI): use the official installer.
   // https://x.ai/cli
-  // Mounts ~/.grok for auth.json, skills, config, completions, etc.
+  // Declares a workspace grok mount (sentinel, not host ~/.grok). Generate-time
+  // resolution maps it to a per-workspace dir by default, or host ~/.grok with --share-home.
   // Supports optional version pinning: --feature grok:0.2.3
   grok: makeGrokFeature,
 
@@ -114,7 +126,7 @@ function makeGrokFeature(arg: string | undefined): FeaturePatch {
     },
     mounts: [
       {
-        source: '${localEnv:HOME}/.grok',
+        source: WORKSPACE_AI_SOURCE.grok,
         target: '/home/vscode/.grok',
         type: 'bind',
       },

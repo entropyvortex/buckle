@@ -1,5 +1,5 @@
 name: Claude Corp
-description: Node + Claude Code + Grok Build + GitHub CLI + selected MCP servers. Mounts ~/.claude and ~/.grok.
+description: Node + Claude Code + Grok Build + GitHub CLI + selected MCP servers. Per-workspace Claude and Grok state (not host ~/.claude / ~/.grok).
 version: 0.1.0
 
 # Real-world corporate / power-user AI-native example.
@@ -17,9 +17,9 @@ version: 0.1.0
 # Key patterns demonstrated:
 # - `extends` for reuse
 # - `features` sugar (claude-code, grok, gh, git-config, mcp:*)
-# - Mounting two separate AI tool config directories
+# - Mounting two separate AI tool config directories (per-workspace, not host home)
 # - Environment variables for tool configuration
-# - Bind-mounting host directories using ${localEnv:HOME}
+# - buckle:workspace/* sentinels resolved at generate time (never host ~/.claude / ~/.grok)
 #
 # Having both Claude Code and Grok Build together is a deliberately
 # first-class experience. The tools compose cleanly with separate
@@ -38,13 +38,14 @@ features:
 env:
   CLAUDE_CONFIG_DIR: /home/vscode/.claude
 
-# Mount the host AI coding agent config directories so conversations,
-# settings, API keys, and skills travel with you across machines and projects.
+# Persist AI agent state per workspace. `buckle:workspace/*` is not a host path;
+# generate-time resolution maps it to $XDG_DATA_HOME/buckle/workspaces/<id>/{claude,grok}
+# (default) or host ~/.claude / ~/.grok only with --share-home.
 mounts:
-  - source: ${localEnv:HOME}/.claude
+  - source: buckle:workspace/claude
     target: /home/vscode/.claude
     type: bind
-  - source: ${localEnv:HOME}/.grok
+  - source: buckle:workspace/grok
     target: /home/vscode/.grok
     type: bind
 

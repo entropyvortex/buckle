@@ -70,7 +70,7 @@ function attachGlobals(cmd: Command): Command {
     .option('--preview, --dry-run', 'show what would be written without changing the filesystem')
     .option(
       '--isolate',
-      'keep AI agent skills/config per workspace (default). Each container gets its own ~/.claude and ~/.grok under $XDG_DATA_HOME/buckle/workspaces/',
+      'keep AI agent skills/config per workspace (default). Each container gets its own ~/.claude, ~/.grok and ~/.config/gh under $XDG_DATA_HOME/buckle/workspaces/',
     )
     .option('--no-isolate', 'alias for --share-home')
     .option(

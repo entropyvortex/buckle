@@ -52,5 +52,10 @@ describe('e2e: render node template', () => {
     const dc = await readFile(join(dir, '.devcontainer/devcontainer.json'), 'utf8');
     // claude-code feature now uses the official installer script (not the old npm package)
     expect(dc).toContain('https://claude.ai/install.sh');
+    expect(dc).not.toContain('${localEnv:HOME}/.claude');
+    expect(dc).not.toContain('${localEnv:HOME}/.grok');
+    expect(dc).not.toContain('buckle:workspace/');
+    expect(dc).toContain('target=/home/vscode/.claude,type=bind');
+    expect(dc).toContain('target=/home/vscode/.grok,type=bind');
   });
 });

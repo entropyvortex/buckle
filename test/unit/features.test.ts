@@ -122,7 +122,7 @@ describe('applyFeatures', () => {
     expect(applyFeatures(t)).toBe(t);
   });
 
-  it('grok feature installs via official script and mounts ~/.grok', () => {
+  it('grok feature installs via official script and declares a workspace grok mount', () => {
     const t: Template = {
       version: '0.1.0',
       image: 'foo:1',
@@ -135,11 +135,12 @@ describe('applyFeatures', () => {
     expect(out.mounts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          source: '${localEnv:HOME}/.grok',
+          source: 'buckle:workspace/grok',
           target: '/home/vscode/.grok',
         }),
       ])
     );
+    expect(out.mounts?.some((m) => m.source.includes('${localEnv:HOME}/.grok'))).toBe(false);
   });
 
   it('grok feature supports version pinning', () => {

@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+
+- Built-in `ai-native` / `claude-corp` templates and the `grok` feature no longer
+  bind-mount host `~/.claude` / `~/.grok`. They declare `buckle:workspace/{claude,grok}`
+  sentinels; generate-time resolution maps those to per-workspace dirs (default) or
+  host home only with `--share-home`. Copying a template without the remap step
+  cannot clobber host agent state.
+
 ## [0.4.0] — 2026-08-31
 
 ### Breaking

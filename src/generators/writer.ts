@@ -35,6 +35,7 @@ export async function plan(t: Template, opts: RenderOptions): Promise<RenderPlan
   if (isolate) {
     await ensureDir(isolatedMountSource(opts.cwd, 'claude'));
     await ensureDir(isolatedMountSource(opts.cwd, 'grok'));
+    await ensureDir(isolatedMountSource(opts.cwd, 'gh'));
   }
 
   const dc = buildDevcontainer(t, opts.projectName, {
