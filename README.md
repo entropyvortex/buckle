@@ -119,7 +119,7 @@ $ buckle up claude-corp        # Node + Claude Code + GitHub CLI + selected MCPs
 | `--git-init` | Initialize a git repo in the workspace if there is none. |
 | `--preview`, `--dry-run` | Show what *would* be written without touching disk. |
 | `--isolate` | Default. Per-workspace `~/.claude` / `~/.grok` under `$XDG_DATA_HOME/buckle/workspaces/`. |
-| `--share-home`, `--no-isolate` | Bind-mount host `~/.claude`, `~/.grok`, and `~/.gitconfig` instead. |
+| `--share-home`, `--no-isolate` | Bind-mount host `~/.claude`, `~/.grok`, and `~/.config/gh` instead (`~/.gitconfig` is always bound from the host). |
 
 ---
 
