@@ -20,7 +20,7 @@ const SourceBuild = z.object({
   build: z.object({
     dockerfile: z.string().min(1),
     context: z.string().optional(),
-    args: z.record(z.string()).optional(),
+    args: z.record(z.string(), z.string()).optional(),
     target: z.string().optional(),
   }),
 });
@@ -38,7 +38,7 @@ const FeatureValue = z.union([
   z.string(),
   z.number(),
   z.boolean(),
-  z.record(z.union([z.string(), z.number(), z.boolean()])),
+  z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
 ]);
 
 const FeaturesField = z.array(z.union([z.string(), z.tuple([z.string(), FeatureValue])])).optional();
@@ -88,15 +88,15 @@ export const TemplateSchema = z
     /** Buckle convenience features + native devcontainer features (mixed). */
     features: FeaturesField,
     /** Pass-through native devcontainer features (in case the user wants to be explicit). */
-    nativeFeatures: z.record(z.union([z.record(z.unknown()), z.boolean(), z.string()])).optional(),
+    nativeFeatures: z.record(z.string(), z.union([z.record(z.string(), z.unknown()), z.boolean(), z.string()])).optional(),
     forwardPorts: z.array(PortDecl).optional(),
     appPort: z.union([z.number(), z.string(), z.array(z.union([z.number(), z.string()]))]).optional(),
-    portsAttributes: z.record(z.unknown()).optional(),
+    portsAttributes: z.record(z.string(), z.unknown()).optional(),
     mounts: z.array(MountDecl).optional(),
-    env: z.record(z.string()).optional(),
+    env: z.record(z.string(), z.string()).optional(),
     runArgs: z.array(z.string()).optional(),
     /** devcontainer.json `customizations`, e.g. vscode.extensions / vscode.settings. */
-    customizations: z.record(z.unknown()).optional(),
+    customizations: z.record(z.string(), z.unknown()).optional(),
     remoteUser: z.string().optional(),
     containerUser: z.string().optional(),
     workspaceFolder: z.string().optional(),
