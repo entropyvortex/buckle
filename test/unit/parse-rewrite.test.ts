@@ -59,7 +59,8 @@ describe('dispatch — template rewrite path', () => {
     }
   });
 
-  it('exits via subcommand `doctor` (json)', async () => {
+  // `doctor` probes the real docker daemon and CLIs; allow for slow CI runners.
+  it('exits via subcommand `doctor` (json)', { timeout: 30_000 }, async () => {
     const r = await dispatch(['node', 'buckle', 'doctor', '--json']);
     expect(r.tui).toBe(false);
   });

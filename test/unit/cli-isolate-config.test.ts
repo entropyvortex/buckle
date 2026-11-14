@@ -48,7 +48,10 @@ function isolateCheckMessage(): string {
   return check!.message;
 }
 
-describe('isolate resolution across CLI → config', () => {
+// `doctor` probes the real docker daemon and CLIs (each probe can take several
+// seconds on a CI runner with docker installed), so these tests get more than
+// vitest's 5s default.
+describe('isolate resolution across CLI → config', { timeout: 30_000 }, () => {
   it('defaults to per-workspace isolation', async () => {
     await dispatch(['node', 'buckle', 'doctor', '--json']);
     expect(isolateCheckMessage()).toMatch(/per-workspace agent state/);
